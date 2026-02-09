@@ -68,8 +68,7 @@ typedef struct {
     TextureAssets texture_assets;
     Events_TextureAssetEvent texture_asset_events;
     // -- Render Begin
-    URectSize render_screen_size;
-    RenderTexture screen_target;
+    RenderTargetTexture screen_render_target;
     // -- Render2D
     SpriteCameraStore camera_store;
     SpriteStore sprite_store;

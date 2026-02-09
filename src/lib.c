@@ -43,8 +43,10 @@ void just_engine_init(JustEngineInit init) {
         .file_image_server = LATER_INIT,
         .texture_assets = new_texture_assets(),
         .texture_asset_events = TextureAssetEvent__events_create(),
-        .render_screen_size = init.render2d.render_screen_size,
-        .screen_target = screen_target,
+        .screen_render_target = {
+            .texture_size = init.render2d.render_screen_size,
+            .texture = screen_target,
+        },
         .camera_store = STRUCT_ZERO_INIT,
         .sprite_store = STRUCT_ZERO_INIT,
         .ui_store = ui_element_store_new(),
@@ -56,8 +58,6 @@ void just_engine_init(JustEngineInit init) {
         .RES_texture_assets_events = &JUST_GLOBAL.texture_asset_events,
         .asset_folder = init.dir.asset_dir,
     };
-
-    // set_primary_camera(&JUST_GLOBAL.camera_store, init.render2d.primary_camera);
 }
 
 void just_engine_deinit(JustEngineDeinit deinit) {
@@ -79,6 +79,7 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
 
     InitWindow(init.window.size.width, init.window.size.height, init.window.title);
     SetTargetFPS(init.execution.target_fps);
+    SetWindowMonitor(GetMonitorCount()-1);
     // if (!IsWindowFullscreen()) {
     //     ToggleFullscreen();
     // }
@@ -301,7 +302,7 @@ void JUST_SYSTEM_RENDER_end_drawing() {
 void JUST_SYSTEM_RENDER_SCREEN_begin_drawing() {
     BeginDrawing();
         ClearBackground(JUST_GLOBAL.clear_color);
-        Texture texture = JUST_GLOBAL.screen_target.texture;
+        Texture texture = JUST_GLOBAL.screen_render_target.texture.texture;
         URectSize screen_size = JUST_GLOBAL.screen_size;
         DrawTexturePro(
             texture,

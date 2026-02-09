@@ -264,6 +264,7 @@ void render2d_render_sprites(
         render_sprite = render_sprites->sprites[i];
         sprite = RES_sprite_store->sprites[render_sprite.sprite_entity.id];
         transform = RES_sprite_store->transforms[render_sprite.sprite_entity.id];
+        JUST_LOG_DEBUG("draw sprite %llu\n", render_sprite.sprite_entity.id);
 
         texture = texture_assets_get_texture_or_default(RES_texture_assets, sprite.texture);
         source = sprite.use_custom_source
