@@ -8,15 +8,27 @@ set INTROSPECT_SRC_DIR=introspect
 set BUILD_DIR=target
 set LIB_DIR=justengine
 
-if "%COMMAND%" == "clean" (
+:loop
+if NOT "%1"=="" (
+    if "%1"=="--gen-introspect" (
+        SET ARG_WITH_INTROSPECT=true
+        SHIFT
+    ) else if "%1"=="--clean" (
+        SET IS_CLEAN=true
+    )
+    SHIFT
+    goto :loop
+)
+
+if defined IS_CLEAN (
     @echo on
     @rmdir /s /q %LIB_DIR% >nul 2>&1
-    mingw32-make -f Makefile-lib clean
+    mingw32-make -f Makefile clean
     @echo off
 )
 
 @echo on
-mingw32-make -j16 -f Makefile-lib
+mingw32-make -j16 -f Makefile
 @echo off
 
 mkdir %LIB_DIR%             >nul 2>&1
@@ -66,13 +78,16 @@ echo A | xcopy /q %BUILD_DIR%\libjustengine.a %LIB_DIR%\lib\    >nul 2>&1
 call build %INTROSPECT_SRC_DIR%/main.c --out %LIB_DIR%/bin/introspect.exe
 @echo off
 
-set INCLUDE=^
-	-Ivendor/openssl-3.5.0/include ^
-	-Ivendor/curl-8.16.0/include ^
-	-Ivendor/raylib-5.0/include ^
-	-Ivendor/clay-0.14/include ^
-	-Ivendor/raycimgui-1.92.1/include ^
-	-Isrc
-call run "%LIB_DIR%/bin/introspect.exe" %SRC_DIR% introspect_gen__justengine.h %INCLUDE%
+if defined ARG_WITH_INTROSPECT (
+	set INCLUDE=^
+		-Ivendor/openssl-3.5.0/include ^
+		-Ivendor/curl-8.16.0/include ^
+		-Ivendor/raylib-5.0/include ^
+		-Ivendor/clay-0.14/include ^
+		-Ivendor/raycimgui-1.92.1/include ^
+		-Isrc
+	call run "%LIB_DIR%/bin/introspect.exe" %SRC_DIR% introspect_gen__justengine.h %INCLUDE%
+)
 
+@echo off
 echo A | xcopy /q introspect_gen__justengine.h %LIB_DIR%\include\   >nul 2>&1

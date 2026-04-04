@@ -4,7 +4,11 @@
             "name": "Mingw-GCC",
             "includePath": [
                 "${workspaceFolder}/src/**",
-                "${workspaceFolder}/vendor/**",
+                "${workspaceFolder}/vendor/openssl-3.5.0/include",
+                "${workspaceFolder}/vendor/curl-8.16.0/include",
+                "${workspaceFolder}/vendor/raylib-5.0/include",
+                "${workspaceFolder}/vendor/clay-0.14/include",
+                "${workspaceFolder}/vendor/raycimgui-1.92.1/include",
                 "${workspaceFolder}/justengine/include/**"
             ],
             "defines": [
