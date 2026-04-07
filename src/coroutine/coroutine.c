@@ -121,6 +121,6 @@ Coroutine make_coroutine_sprite_position_tween(SpriteStore* sprite_store, Sprite
     // data->is_paused = is_paused;
 
     Coroutine coroutine;
-    alloc_make_coroutine(coroutine, coroutine_fn_sprite_position_tween, state, data);
+    alloc_make_coroutine(coroutine, (CoroutineFn)coroutine_fn_sprite_position_tween, state, data);
     return coroutine;
 }

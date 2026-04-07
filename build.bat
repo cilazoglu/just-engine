@@ -24,7 +24,7 @@ set BUILD_DIR=target
 
 set CC=gcc
 
-set COMPILER_FLAGS=-std=c11
+set COMPILER_FLAGS=-std=c2x
 
 set INCLUDE=^
     -Ijustengine/include/openssl ^
