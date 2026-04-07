@@ -167,6 +167,25 @@
         (arr).count++; \
     } while(0)
 
+#define dynarray_swap_remove(arr, index) \
+    do { \
+        (arr).items[index] = (arr).items[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
+#define dynarray_swap_remove_custom(arr, items_field, index) \
+    do { \
+        (arr)items_field[index] = (arr)items_field[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
+#define dynarray_swap_remove_custom_2(arr, items_field_1, items_field_2, index) \
+    do { \
+        (arr)items_field_1[index] = (arr)items_field_1[(arr).count - 1]; \
+        (arr)items_field_2[index] = (arr)items_field_2[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
 #define dynarray_clone(dst_arr, src_arr) \
     do { \
         usize dynarray_clone__size = sizeof(*(dst_arr).items) * (dst_arr).count; \
