@@ -70,6 +70,7 @@ void execute_coroutines(CoroutineExecutor* executor) {
     }
 }
 
+#include "animation/animation.h"
 #include "animation/tween.h"
 #include "render2d/sprite.h"
 #include "lib.h"
@@ -112,15 +113,61 @@ Coroutine make_coroutine_sprite_position_tween(SpriteStore* sprite_store, Sprite
         .sprite_id = sprite_id,
         .is_paused = is_paused,
     };
-    // CoroutineState_SpritePositionTween* state = std_malloc(sizeof(CoroutineState_SpritePositionTween));
-    // state->position_tween = position_tween;
-
-    // CoroutineData_SpritePositionTween* data = std_malloc(sizeof(CoroutineData_SpritePositionTween));
-    // data->RES_sprite_store = sprite_store;
-    // data->sprite_id = sprite_id;
-    // data->is_paused = is_paused;
 
     Coroutine coroutine;
     alloc_make_coroutine(coroutine, (CoroutineFn)coroutine_fn_sprite_position_tween, state, data);
+    return coroutine;
+}
+
+typedef struct {
+    SpriteSheetAnimationState anim_state;
+    uint32 repeated_count;
+} CoroutineState_SpriteSheetAnimation;
+
+typedef struct {
+    SpriteStore* sprite_store;
+    SpriteEntityId sprite_id;
+    uint32 repeat_times;
+    // --
+    bool* is_paused;
+} CoroutineData_SpriteSheetAnimation;
+
+void coroutine_fn_sprite_sheet_animation(CoroutineState_SpriteSheetAnimation* state, CoroutineData_SpriteSheetAnimation* data) {
+    if (!sprite_is_valid(data->sprite_store, data->sprite_id)) {
+        std_free(state);
+        std_free(data);
+        end_coroutine();
+    }
+    if (data->is_paused != NULL && *data->is_paused) {
+        return;
+    }
+
+    tick_animation_state(&state->anim_state);
+    if (animation_is_finished(&state->anim_state)) {
+        state->repeated_count++;
+        if (state->repeated_count == data->repeat_times){
+            end_coroutine();
+        }
+    }
+}
+
+Coroutine make_coroutine_sprite_sheet_animation(
+    SpriteStore* sprite_store, SpriteEntityId sprite_id,
+    SpriteSheetAnimationState anim_state, uint32 repeat_times,
+    bool* is_paused
+) {
+    CoroutineState_SpriteSheetAnimation state = {
+        .anim_state = anim_state,
+        .repeated_count = 0,
+    };
+    CoroutineData_SpriteSheetAnimation data = {
+        .sprite_store = sprite_store,
+        .sprite_id = sprite_id,
+        .repeat_times = repeat_times,
+        .is_paused = is_paused,
+    };
+
+    Coroutine coroutine;
+    alloc_make_coroutine(coroutine, (CoroutineFn)coroutine_fn_sprite_sheet_animation, state, data);
     return coroutine;
 }
