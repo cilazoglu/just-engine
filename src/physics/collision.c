@@ -123,10 +123,23 @@ bool check_collision_aabb_aabb(AABBCollider a1, AABBCollider a2) {
         && a2.y_top <= a1.y_bottom;
 }
 
-bool check_shifted_collision_aabb_aabb(SpaceShift s1, AABBCollider a1, SpaceShift s2, AABBCollider a2) {
+AABBCollider get_collision_manifold_aabb_aabb(AABBCollider a1, AABBCollider a2) {
+    return (AABBCollider) {
+        .x_left = MAX(a1.x_left, a2.x_left),
+        .x_right = MIN(a1.x_right, a2.x_right),
+        .y_top = MAX(a1.y_top, a2.y_top),
+        .y_bottom = MIN(a1.y_bottom, a2.y_bottom),
+    };
+}
+
+bool check_shifted_collision_aabb_aabb(SpaceShift s1, AABBCollider a1, SpaceShift s2, AABBCollider a2, AABBCollider* manifold) {
     a1 = shift_aabb(s1, a1);
     a2 = shift_aabb(s2, a2);
-    return check_collision_aabb_aabb(a1, a2);
+    bool result = check_collision_aabb_aabb(a1, a2);
+    if (result && manifold != NULL) {
+        *manifold = get_collision_manifold_aabb_aabb(a1, a2);
+    }
+    return result;
 }
 
 bool check_rayhit_circle(Ray2 ray, CircleCollider c1, float32 max_dist) {
@@ -156,17 +169,23 @@ bool check_rayhit_aabb(Ray2 ray, AABBCollider a1, float32 max_dist) {
     return check_collision_line_aabb(ray_line, a1);
 }
 
-bool check_collision_aabb_collider_sets(AABBColliderSet* s1, AABBColliderSet* s2) {
+bool check_collision_aabb_collider_sets(AABBColliderSet* s1, AABBColliderSet* s2, AABBCollider* manifold) {
     if (s1->count == 0 || s2->count == 0) {
         return false;
     }
     if (check_collision_aabb_aabb(s1->bounding_box, s2->bounding_box)) {
         if (s1->count == 1 && s2->count == 1) {
+            if (manifold != NULL) {
+                *manifold = get_collision_manifold_aabb_aabb(s1->bounding_box, s2->bounding_box);
+            }
             return true;
         }
         for (uint32 i1 = 0; i1 < s1->count; i1++) {
             for (uint32 i2 = 0; i2 < s2->count; i2++) {
                 if (check_collision_aabb_aabb(s1->colliders[i1], s2->colliders[i2])) {
+                    if (manifold != NULL) {
+                        *manifold = get_collision_manifold_aabb_aabb(s1->colliders[i1], s2->colliders[i2]);
+                    }
                     return true;
                 }
             }
@@ -175,22 +194,24 @@ bool check_collision_aabb_collider_sets(AABBColliderSet* s1, AABBColliderSet* s2
     return false;
 }
 
-bool check_shifted_collision_aabb_collider_sets(SpaceShift o1, AABBColliderSet* s1, SpaceShift o2, AABBColliderSet* s2) {
+bool check_shifted_collision_aabb_collider_sets(SpaceShift o1, AABBColliderSet* s1, SpaceShift o2, AABBColliderSet* s2, AABBCollider* manifold) {
     if (s1->count == 0 || s2->count == 0) {
         return false;
     }
-    if (check_shifted_collision_aabb_aabb(o1, s1->bounding_box, o2, s2->bounding_box)) {
+    AABBCollider manifold_save = *manifold;
+    if (check_shifted_collision_aabb_aabb(o1, s1->bounding_box, o2, s2->bounding_box, manifold)) {
         if (s1->count == 1 && s2->count == 1) {
             return true;
         }
         for (uint32 i1 = 0; i1 < s1->count; i1++) {
             for (uint32 i2 = 0; i2 < s2->count; i2++) {
-                if (check_shifted_collision_aabb_aabb(o1, s1->colliders[i1], o2, s2->colliders[i2])) {
+                if (check_shifted_collision_aabb_aabb(o1, s1->colliders[i1], o2, s2->colliders[i2], manifold)) {
                     return true;
                 }
             }
         }
     }
+    *manifold = manifold_save;
     return false;
 }
 

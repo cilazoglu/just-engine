@@ -57,11 +57,12 @@ bool check_collision_circle_circle(CircleCollider c1, CircleCollider c2);
 bool check_collision_circle_aabb(CircleCollider c1, AABBCollider a2);
 
 bool check_collision_aabb_aabb(AABBCollider a1, AABBCollider a2);
-bool check_shifted_collision_aabb_aabb(SpaceShift o1, AABBCollider a1, SpaceShift o2, AABBCollider a2);
+AABBCollider get_collision_manifold_aabb_aabb(AABBCollider a1, AABBCollider a2);
+bool check_shifted_collision_aabb_aabb(SpaceShift s1, AABBCollider a1, SpaceShift s2, AABBCollider a2, AABBCollider* manifold);
 
 bool check_rayhit_circle(Ray2 ray, CircleCollider c1, float32 max_dist);
 bool check_rayhit_aabb(Ray2 ray, AABBCollider a1, float32 max_dist);
 
-bool check_collision_aabb_collider_sets(AABBColliderSet* s1, AABBColliderSet* s2);
-bool check_shifted_collision_aabb_collider_sets(SpaceShift o1, AABBColliderSet* s1, SpaceShift o2, AABBColliderSet* s2);
+bool check_collision_aabb_collider_sets(AABBColliderSet* s1, AABBColliderSet* s2, AABBCollider* manifold);
+bool check_shifted_collision_aabb_collider_sets(SpaceShift o1, AABBColliderSet* s1, SpaceShift o2, AABBColliderSet* s2, AABBCollider* manifold);
 void recalculate_bounding_box(AABBColliderSet* set);
