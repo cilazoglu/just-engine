@@ -11,6 +11,7 @@ typedef enum {
     Token_typedef,
     Token_struct,
     Token_union,
+    Token_enum,
     // --
     Token_const,
     // --
@@ -37,6 +38,7 @@ typedef enum {
     Token_comma,
     Token_colon,
     Token_semicolon,
+    Token_equals,
     // --
     Token_paren_open,
     Token_paren_close,
@@ -54,6 +56,7 @@ typedef enum {
     Token_introspect_extension_mode_string,
     // Token_introspect_extension_key_count,
     // Token_introspect_extension_key_discriminant,
+    Token_introspect_extension_defines_invalid,
     Token__endblock__extension,
     // --
 } FieldParseTokens;
@@ -62,6 +65,7 @@ StaticStringToken field_parse_tokens__static[] = {
     (StaticStringToken) { .id = Token_typedef, .token = "typedef" },
     (StaticStringToken) { .id = Token_struct, .token = "struct" },
     (StaticStringToken) { .id = Token_union, .token = "union" },
+    (StaticStringToken) { .id = Token_enum, .token = "enum" },
 
     (StaticStringToken) { .id = Token_const, .token = "const" },
 
@@ -88,6 +92,8 @@ StaticStringToken field_parse_tokens__static[] = {
     (StaticStringToken) { .id = Token_comma, .token = "," },
     (StaticStringToken) { .id = Token_colon, .token = ":" },
     (StaticStringToken) { .id = Token_semicolon, .token = ";" },
+    (StaticStringToken) { .id = Token_equals, .token = "=" },
+
     (StaticStringToken) { .id = Token_paren_open, .token = "(" },
     (StaticStringToken) { .id = Token_paren_close, .token = ")" },
     (StaticStringToken) { .id = Token_sq_paren_open, .token = "[" },
@@ -101,6 +107,7 @@ StaticStringToken field_parse_tokens__static[] = {
     (StaticStringToken) { .id = Token_introspect_extension_mode_cstr, .token = "_mode_cstr__just_to_make_sure_no_token_overlap__" },
     (StaticStringToken) { .id = Token_introspect_extension_mode_dynarray, .token = "_mode_dynarray__just_to_make_sure_no_token_overlap__" },
     (StaticStringToken) { .id = Token_introspect_extension_mode_string, .token = "_mode_string__just_to_make_sure_no_token_overlap__" },
+    (StaticStringToken) { .id = Token_introspect_extension_defines_invalid, .token = "_defines_invalid__just_to_make_sure_no_token_overlap__" },
     // (StaticStringToken) { .id = Token_introspect_extension_key_count, .token = "count" },
     // (StaticStringToken) { .id = Token_introspect_extension_key_discriminant, .token = "discriminant" },
 };
@@ -168,16 +175,35 @@ typedef struct {
 } StructInfo;
 
 typedef struct {
+    String type_name;
+    usize count;
+    usize capacity;
+    EnumMemberInfo* members;
+} EnumInfo;
+
+typedef struct {
     usize count;
     usize capacity;
     StructInfo* structs;
 } IntrospectedStructs;
 
+typedef struct {
+    usize count;
+    usize capacity;
+    EnumInfo* enums;
+} IntrospectedEnums;
+
 IntrospectedStructs INTROSPECTED_STRUCTS = {0};
+IntrospectedEnums INTROSPECTED_ENUMS = {0};
 
 bool already_introspected(String type_name) {
     for (usize i = 0; i < INTROSPECTED_STRUCTS.count; i++) {
         if (ss_equals(INTROSPECTED_STRUCTS.structs[i].type_name, type_name)) {
+            return true;
+        }
+    }
+    for (usize i = 0; i < INTROSPECTED_ENUMS.count; i++) {
+        if (ss_equals(INTROSPECTED_ENUMS.enums[i].type_name, type_name)) {
             return true;
         }
     }
@@ -504,6 +530,94 @@ void write_introspect(StringBuilder* GEN, StructInfo* struct_info) {
     // string_builder_append_cstr(GEN, "};\n\n");
 }
 
+// #define ENUM_INVALID__HeroStance -1
+// #define ENUM_COUNT__HeroStance 3
+// const char* ENUM_NAME__HeroStance(HeroStance val) {
+//     switch (val) {
+//         case HERO_STANCE__INVALID: return "HERO_STANCE__INVALID";
+//         case HERO_STANCE__MID: return "HERO_STANCE__MID";
+//         case HERO_STANCE__HIGH: return "HERO_STANCE__HIGH";
+//         case HERO_STANCE__LOW: return "HERO_STANCE__LOW";
+//         default: PANIC("[" "HeroStance" "] Unknown Enum Value: %d\n", val);
+//     }
+// }
+// HeroStance ENUM_VALUE__HeroStance(char* name) {
+//     if (cstr_equals(name, "HERO_STANCE__INVALID")) return HERO_STANCE__INVALID;
+//     if (cstr_equals(name, "HERO_STANCE__MID")) return HERO_STANCE__MID;
+//     if (cstr_equals(name, "HERO_STANCE__HIGH")) return HERO_STANCE__HIGH;
+//     if (cstr_equals(name, "HERO_STANCE__LOW")) return HERO_STANCE__LOW;
+//     PANIC("[" "HeroStance" "] Unknown Enum Name: %s\n", name);
+// }
+
+// #define ENUM_INVALID(Enum) ENUM_INVALID__##Enum
+// #define ENUM_COUNT(Enum) ENUM_COUNT__##Enum
+// #define ENUM_NAME(Enum) ENUM_NAME__##Enum
+// #define ENUM_VALUE(Enum) ENUM_VALUE__##Enum
+
+void write_introspect_enum(StringBuilder* GEN, EnumInfo* enum_info) {
+    bool has_invalid_member = false;
+    char* invalid_enum_member_name;
+    for (usize i = 0; i < enum_info->count; i++) {
+        if (enum_info->members[i].defines_invalid) {
+            has_invalid_member = true;
+            invalid_enum_member_name = enum_info->members[i].name;
+        }
+    }
+
+    if (has_invalid_member) {
+        string_builder_append_format(GEN, "#define ENUM_INVALID__%s %s\n", enum_info->type_name.cstr, invalid_enum_member_name);
+        string_builder_append_format(GEN, "#define ENUM_COUNT__%s %d\n", enum_info->type_name.cstr, enum_info->count - 1);
+    }
+    else {
+        string_builder_append_format(GEN, "#define ENUM_COUNT__%s %d\n", enum_info->type_name.cstr, enum_info->count);
+    }
+
+    string_builder_append_format(GEN,
+        "static inline const char* ENUM_NAME__%s(%s val) {\n",
+        enum_info->type_name.cstr, enum_info->type_name.cstr
+    );
+    string_builder_append_cstr(GEN,
+        "\tswitch (val) {\n"
+    );
+    for (usize i = 0; i < enum_info->count; i++) {
+        EnumMemberInfo enum_member_info = enum_info->members[i];
+        string_builder_append_format(GEN,
+            "\t\tcase %s: return \"%s\";\n",
+            enum_member_info.name, enum_member_info.name
+        );
+    }
+    string_builder_append_format(GEN,
+        "\t\tdefault: PANIC(\"[%s] Unknown Enum Value: %%d\\n\", val);\n",
+        enum_info->type_name.cstr
+    );
+    string_builder_append_cstr(GEN,
+        "\t}\n}\n"
+    );
+
+    string_builder_append_format(GEN,
+        "static inline %s ENUM_VALUE__%s(char* name) {\n",
+        enum_info->type_name.cstr, enum_info->type_name.cstr
+    );
+    for (usize i = 0; i < enum_info->count; i++) {
+        EnumMemberInfo enum_member_info = enum_info->members[i];
+        string_builder_append_format(GEN,
+            "\tif (cstr_equals(name, \"%s\")) return %s;\n",
+            enum_member_info.name, enum_member_info.name
+        );
+    }
+    string_builder_append_format(GEN,
+        "\tPANIC(\"[%s] Unknown Enum Name: %%s\\n\", name);\n",
+        enum_info->type_name.cstr
+    );
+    string_builder_append_cstr(GEN,
+        "}\n"
+    );
+    
+    string_builder_append_cstr(GEN,
+        "\n"
+    );
+}
+
 String gen_introspect_file() {
     StringBuilder GEN = string_builder_new();
 
@@ -545,6 +659,12 @@ String gen_introspect_file() {
     for (usize i = 0; i < INTROSPECTED_STRUCTS.count; i++) {
         StructInfo* struct_info = &INTROSPECTED_STRUCTS.structs[i];
         string_builder_append_format(&GEN, "__IMPL_____generate_print_functions(%s);\n", struct_info->type_name.cstr);
+    }
+    string_builder_append_cstr(&GEN, "\n");
+
+    for (usize i = 0; i < INTROSPECTED_ENUMS.count; i++) {
+        EnumInfo* enum_info = &INTROSPECTED_ENUMS.enums[i];
+        write_introspect_enum(&GEN, enum_info);
     }
     string_builder_append_cstr(&GEN, "\n");
     
@@ -1040,6 +1160,168 @@ StructInfo parse_struct_2(StringTokensIter* tokens_iter, StringTokenOut token) {
     return struct_info;
 }
 
+typedef enum {
+    EnumMemberParse_Begin,
+    EnumMemberParse_AfterName,
+    EnumMemberParse_AfterEquals,
+    EnumMemberParse_AfterValue,
+    EnumMemberParse_End,
+} EnumMemberParseState;
+
+EnumMemberInfo parse_enum_member(StringTokensIter* tokens_iter, StringTokenOut token) {
+    EnumMemberInfo enum_member_info = {0};
+
+    EnumMemberParseState state = EnumMemberParse_Begin;
+
+    enum_member_info.name = cstr_nclone(token.token.str, token.token.count);
+    state = EnumMemberParse_AfterName;
+
+    while(next_token(tokens_iter, &token)) {
+        switch (state) {
+        case EnumMemberParse_AfterName:
+            switch (token.id) {
+            // case Token_cr_paren_close: // TODO: handle last member no comma at the end 
+            case Token_comma:
+                enum_member_info.value = NULL;
+                enum_member_info.iota = true;
+                goto ENUM_MEMBER_PARSE_END;
+            case Token_equals:
+                state = EnumMemberParse_AfterEquals;
+                break;
+            }
+            break;
+        case EnumMemberParse_AfterEquals:
+            if (token.free_word) {
+                enum_member_info.value = cstr_nclone(token.token.str, token.token.count);
+                enum_member_info.iota = false;
+                state = EnumMemberParse_AfterValue;
+            }
+            else {
+                PANIC("Enum parse error.\n");
+            }
+            break;
+        case EnumMemberParse_AfterValue:
+            switch (token.id) {
+            case Token_comma:
+                goto ENUM_MEMBER_PARSE_END;
+            case Token_introspect_extension_defines_invalid:
+                enum_member_info.defines_invalid = true;
+                expect_token(tokens_iter, Token_paren_open);
+                expect_token(tokens_iter, Token_paren_close);
+                break;
+            }
+            break;
+        default:
+            PANIC("Enum parse error.\n");
+        }
+    };
+
+    ENUM_MEMBER_PARSE_END:
+    return enum_member_info;
+}
+
+EnumInfo parse_enum(StringTokensIter* tokens_iter, StringTokenOut token) {
+    EnumInfo enum_info = {0};
+
+    JUST_LOG_DEBUG("token.id: %d\n", token.id);
+    ASSERT(token.id == Token_enum);
+    while (next_token(tokens_iter, &token)) {
+        if (token.free_word) {
+            // struct name
+            enum_info.type_name = string_from_view(token.token);
+            continue;
+        }
+        switch (token.id) {
+        case Token_cr_paren_open:
+            goto START_PARSE_ENUM_MEMBERS;
+        default:
+            PANIC("Enum parse error.\n");
+        }
+    }
+
+    START_PARSE_ENUM_MEMBERS:
+    while(next_token(tokens_iter, &token)) {
+        if (token.free_word) {
+            EnumMemberInfo member = parse_enum_member(tokens_iter, token);
+            dynarray_push_back_custom(enum_info, .members, member);
+        }
+        else if (token.id == Token_cr_paren_close) {
+            goto END_PARSE_ENUM_MEMBERS;
+        }
+        else {
+            string_view_use_as_cstr(token.token, char* token_cstr, ({
+                PANIC("Enum parse error. Unexpected token: %d, %s\n", token.id, token_cstr);
+            }));
+        }
+    }
+    
+    END_PARSE_ENUM_MEMBERS:
+    while (next_token(tokens_iter, &token)) {
+        if (token.free_word) {
+            // type name
+            enum_info.type_name = string_from_view(token.token);
+            continue;
+        }
+        switch (token.id) {
+        case Token_semicolon:
+            if (enum_info.type_name.count == 0) {
+                PANIC("Enum parse error. No name defined.\n");
+            }
+            goto END_PARSE_ENUM;
+        default:
+            PANIC("Enum parse error.\n");
+        }
+    }
+
+    END_PARSE_ENUM:
+    return enum_info;
+}
+
+void generate_introspect_for_enum(StringView enum_def) {
+    usize curly_paren_open;
+    usize curly_paren_close;
+    for (usize i = 0; i < enum_def.count; i++) {
+        if (enum_def.str[i] == '{') {
+            curly_paren_open = i;
+            break;
+        }
+    }
+    for (int64 i = enum_def.count-1; i >= 0; i--) {
+        if (enum_def.str[i] == '}') {
+            curly_paren_close = i;
+            break;
+        }
+    }
+
+    if (curly_paren_open >= curly_paren_close) {
+        PANIC("Syntax error: curly paren\n");
+    }
+
+    EnumInfo enum_info = {0};
+    enum_info.type_name = string_from_view(string_view_trimmed(string_view_slice_view(enum_def, curly_paren_close + 1, enum_def.count-1 - curly_paren_close - 1)));
+
+    if (already_introspected(enum_info.type_name)) {
+        JUST_LOG_INFO("Introspection already generated for type: %s.\n", enum_info.type_name.cstr);
+        return;
+    }
+
+    usize tokens_count = ARRAY_LENGTH(field_parse_tokens__static);
+    StringToken* field_parse_tokens = string_tokens_from_static(field_parse_tokens__static, tokens_count);
+    StringTokensIter tokens_iter = string_view_iter_tokens(enum_def, field_parse_tokens, tokens_count);
+    StringTokenOut token;
+    
+    peek_token(&tokens_iter, &token);
+    println_string_view(token.token);
+    expect_token(&tokens_iter, Token_typedef);
+    if (next_token(&tokens_iter, &token)) {
+        EnumInfo enum_info = parse_enum(&tokens_iter, token);
+        dynarray_push_back_custom(INTROSPECTED_ENUMS, .enums, enum_info);
+    }
+    else {
+        PANIC("Typedef parse error.\n");
+    }
+}
+
 // FieldInfoExt parse_field(StringTokensIter* tokens_iter, FieldParseState start_state);
 // FieldInfoExt parse_union(StringTokensIter* tokens_iter);
 
@@ -1450,6 +1732,7 @@ bool generate_introspect(String int_filename) {
 
     char ch;
     int32 paren_state = 0;
+    usize paren_open_pos = 0;
     while ((ch = fgetc(file)) != EOF) {
         if (gen_introspect) {
             string_push_char(&struct_def_str, ch);
@@ -1457,6 +1740,7 @@ bool generate_introspect(String int_filename) {
             case STATE_STRUCT_BEGIN:
                 if (ch == '{') {
                     paren_state++;
+                    paren_open_pos = struct_def_str.count - 1;
                     state = STATE_CURLY_PAREN_OPEN_RECEIVED;
                 }
                 break;
@@ -1477,7 +1761,16 @@ bool generate_introspect(String int_filename) {
             case STATE_CURLY_PAREN_CLOSE_RECEIVED:
                 if (ch == ';') {
                     StringView struct_def_view = string_as_view(struct_def_str);
-                    generate_introspect_for_struct(struct_def_view);
+                    StringView kind_substr = string_view_slice_view(struct_def_view, 0, paren_open_pos + 1);
+                    println_string_view(kind_substr);
+                    if (string_view_contains_cstr(kind_substr, "enum")) {
+                        JUST_LOG_DEBUG("is enum\n");
+                        generate_introspect_for_enum(struct_def_view);
+                    }
+                    else {
+                        JUST_LOG_DEBUG("is struct\n");
+                        generate_introspect_for_struct(struct_def_view);
+                    }
                     clear_string(&struct_def_str);
                     gen_introspect = false;
                     state = STATE_STRUCT_BEGIN;

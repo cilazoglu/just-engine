@@ -96,6 +96,13 @@ void free_string(String string) {
     std_free(string.str);
 }
 
+StringView cstr_as_view(char* cstr) {
+    return (StringView) {
+        .count = cstr_length(cstr),
+        .str = cstr,
+    };
+}
+
 bool ss_equals(String s1, String s2) {
     if (s1.count != s2.count) {
         return false;
@@ -115,6 +122,12 @@ bool ssv_equals(String s, StringView sv) {
     }
     return std_memcmp(s.str, sv.str, s.count) == 0;
 }
+bool svsv_equals(StringView sv1, StringView sv2) {
+    if (sv1.count != sv2.count) {
+        return false;
+    }
+    return std_memcmp(sv1.str, sv2.str, sv1.count) == 0;
+}
 bool svcs_equals(StringView sv, char* cs) {
     usize cs_count = cstr_length(cs);
     if (sv.count != cs_count) {
@@ -127,6 +140,32 @@ bool sv_parse_uint64(StringView sv, uint64* out) {
     uint64 num = 0;
     uint64 factor = 1;
     for (int64 i = sv.count-1; i >= 0; i--) {
+        uint64 digit = sv.str[i] - '0';
+        if (digit < 0 || 9 < digit) {
+            return false;
+        }
+        num += digit * factor;
+        factor *= 10;
+    }
+    *out = num;
+    return true;
+}
+
+bool sv_parse_int64(StringView sv, int64* out) {
+    int64 neg_factor = 1;
+    int64 num = 0;
+    uint64 factor = 1;
+
+    int64 i;
+    for (i = sv.count-1; i >= 0; i--) {
+        if (sv.str[i] == '-') {
+            neg_factor *= -1;
+        }
+        else {
+            break;
+        }
+    }
+    for (; i >= 0; i--) {
         uint64 digit = sv.str[i] - '0';
         if (digit < 0 || 9 < digit) {
             return false;
@@ -292,6 +331,34 @@ StringViewPair string_view_split_on_last(StringView string_view, char ch) {
     else {
         return string_view_split_at(string_view, string_view.count);
     }
+}
+
+bool string_contains_cstr(String string, char* cstr) {
+    StringView cstr_view = cstr_as_view(cstr);
+    for (usize i = 0; i < string.count; i++) {
+        if (string.count - i < cstr_view.count) {
+            return false;
+        }
+        StringView check = string_slice_view(string, i, cstr_view.count);
+        if (svsv_equals(cstr_view, check)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool string_view_contains_cstr(StringView string_view, char* cstr) {
+    StringView cstr_view = cstr_as_view(cstr);
+    for (usize i = 0; i < string_view.count; i++) {
+        if (string_view.count - i < cstr_view.count) {
+            return false;
+        }
+        StringView check = string_view_slice_view(string_view, i, cstr_view.count);
+        if (svsv_equals(cstr_view, check)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void string_view_replace_all(StringView string_view, char find, char replace) {

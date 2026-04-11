@@ -13,6 +13,7 @@
     #define mode_dynarray(count_field) _mode_dynarray__just_to_make_sure_no_token_overlap__(count_field)
     #define mode_string(count_field) _mode_string__just_to_make_sure_no_token_overlap__(count_field)
     #define mode_function_ptr(...) _mode_function_ptr__just_to_make_sure_no_token_overlap__(__VA_ARGS__)
+    #define defines_invalid(...) _defines_invalid__just_to_make_sure_no_token_overlap__(__VA_ARGS__)
 #else
     #define introspect 
     #define introspect_with(...) 
@@ -24,6 +25,7 @@
     #define mode_dynarray(count_field) 
     #define mode_string(count_field) 
     #define mode_function_ptr(...) 
+    #define defines_invalid(...) 
 
     #define _introspect__just_to_make_sure_no_token_overlap__ 
     #define _introspect_with__just_to_make_sure_no_token_overlap__(...) 
@@ -34,6 +36,7 @@
     #define _mode_dynarray__just_to_make_sure_no_token_overlap__(count_field) 
     #define _mode_string__just_to_make_sure_no_token_overlap__(count_field) 
     #define _mode_function_ptr__just_to_make_sure_no_token_overlap__(...) 
+    #define _defines_invalid__just_to_make_sure_no_token_overlap__(...) 
 #endif
 
 // TODO
@@ -103,6 +106,24 @@ typedef struct FieldInfo {
     struct FieldInfo* variants;
     // --
 } FieldInfo;
+
+typedef struct {
+    char* name;
+    char* value;
+    bool iota;
+    // --
+    bool defines_invalid;
+    // --
+} EnumMemberInfo;
+
+// -----
+
+#define ENUM_INVALID(Enum) ENUM_INVALID__##Enum
+#define ENUM_COUNT(Enum) ENUM_COUNT__##Enum
+#define ENUM_NAME(Enum) ENUM_NAME__##Enum
+#define ENUM_VALUE(Enum) ENUM_VALUE__##Enum
+
+// -----
 
 typedef struct {
     char* token;

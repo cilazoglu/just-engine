@@ -8,6 +8,7 @@ set INTROSPECT_SRC_DIR=introspect
 set BUILD_DIR=target
 set LIB_DIR=justengine
 
+@REM call'ed sub batch files inherit variables
 :loop
 if NOT "%1"=="" (
     if "%1"=="--gen-introspect" (
@@ -78,16 +79,23 @@ echo A | xcopy /q %BUILD_DIR%\libjustengine.a %LIB_DIR%\lib\    >nul 2>&1
 call build %INTROSPECT_SRC_DIR%/main.c --out %LIB_DIR%/bin/introspect.exe
 @echo off
 
+@echo on
 if defined ARG_WITH_INTROSPECT (
-	set INCLUDE=^
-		-Ivendor/openssl-3.5.0/include ^
-		-Ivendor/curl-8.16.0/include ^
-		-Ivendor/raylib-5.0/include ^
-		-Ivendor/clay-0.14/include ^
-		-Ivendor/raycimgui-1.92.1/include ^
-		-Isrc
-	call run "%LIB_DIR%/bin/introspect.exe" %SRC_DIR% introspect_gen__justengine.h %INCLUDE%
+	@REM set INCLUDE=^
+	@REM 	-Ivendor/openssl-3.5.0/include^
+	@REM 	-Ivendor/curl-8.16.0/include^
+	@REM 	-Ivendor/raylib-5.0/include^
+	@REM 	-Ivendor/clay-0.14/include^
+	@REM 	-Ivendor/raycimgui-1.92.1/include^
+	@REM 	-Isrc
+    
+    set INCLUDE=-Ivendor/openssl-3.5.0/include -Ivendor/curl-8.16.0/include -Ivendor/raylib-5.0/include -Ivendor/clay-0.14/include -Ivendor/raycimgui-1.92.1/include -Isrc
+    
+	@REM call run "%LIB_DIR%/bin/introspect.exe" %SRC_DIR% introspect_gen__justengine.h %INCLUDE%
+	call run "%LIB_DIR%/bin/introspect.exe" %SRC_DIR% introspect_gen__justengine.h -Ivendor/openssl-3.5.0/include -Ivendor/curl-8.16.0/include -Ivendor/raylib-5.0/include -Ivendor/clay-0.14/include -Ivendor/raycimgui-1.92.1/include -Isrc
 )
 
 @echo off
 echo A | xcopy /q introspect_gen__justengine.h %LIB_DIR%\include\   >nul 2>&1
+
+ENDLOCAL

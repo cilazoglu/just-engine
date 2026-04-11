@@ -8,12 +8,12 @@ SHIFT
 :loop
 if NOT "%1"=="" (
     if "%1"=="--out" (
-        SET ARG_OUTPUT=%2
+        SET BUILD__ARG_OUTPUT=%2
         SHIFT
     ) else if "%1"=="--introspect" (
-        SET ARG_WITH_INTROSPECT=true
+        SET BUILD__ARG_WITH_INTROSPECT=true
     ) else if "%1"=="--shared" (
-        SET IS_SHARED=true
+        SET BUILD__IS_SHARED=true
     )
     SHIFT
     goto :loop
@@ -61,21 +61,21 @@ set LINK=^
 
 set SRC_DIR=.
 
-if defined ARG_OUTPUT (
-    set OUTPUT=%ARG_OUTPUT%
+if defined BUILD__ARG_OUTPUT (
+    set OUTPUT=%BUILD__ARG_OUTPUT%
 ) else (
     set OUTPUT=game.exe
 )
 set COMPILE=^
     %SRC_DIR%/%ARG_ENTRY%
 
-if defined ARG_WITH_INTROSPECT (
+if defined BUILD__ARG_WITH_INTROSPECT (
     @echo on
     call run "justengine/bin/introspect.exe" %SRC_DIR%/%ARG_ENTRY% introspect_gen__%ARG_ENTRY_NAME%.h %INCLUDE%
     @echo off
 )
 
-if defined IS_SHARED (
+if defined BUILD__IS_SHARED (
     @echo on
     %CC% %COMPILER_FLAGS% -fPIC -m64 -c %COMPILE% %INCLUDE% %LIB% %LINK% -o %ARG_ENTRY_NAME%.o
     %CC% %ARG_ENTRY_NAME%.o %INCLUDE% %LIB% %LINK% -shared -m64 -Wl,--subsystem,windows -Wl,--out-implib,lib%ARG_ENTRY_NAME%.dll.a -o %ARG_ENTRY_NAME%.dll
@@ -86,3 +86,5 @@ if defined IS_SHARED (
     %CC% %COMPILER_FLAGS% %COMPILE% %INCLUDE% %LIB% -L. %LINK% -lcurl-test -o %OUTPUT%
     @echo off
 )
+
+ENDLOCAL

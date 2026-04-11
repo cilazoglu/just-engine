@@ -75,12 +75,16 @@ String clone_string(String string);
 void clear_string(String* string);
 void free_string(String string);
 
+StringView cstr_as_view(char* cstr);
+
 bool ss_equals(String s1, String s2);
 bool scs_equals(String s, char* cs);
 bool ssv_equals(String s, StringView sv);
+bool svsv_equals(StringView sv1, StringView sv2);
 bool svcs_equals(StringView sv, char* cs);
 
 bool sv_parse_uint64(StringView sv, uint64* out);
+bool sv_parse_int64(StringView sv, int64* out);
 
 #define string_view_use_as_cstr(string_view_in, cstr_use, CodeBlock) \
     do { \
@@ -134,6 +138,9 @@ StringViewPair string_split_on_last(String string, char ch);
 StringViewPair string_view_split_at(StringView string_view, usize index);
 StringViewPair string_view_split_on_first(StringView string_view, char ch);
 StringViewPair string_view_split_on_last(StringView string_view, char ch);
+
+bool string_contains_cstr(String string, char* cstr);
+bool string_view_contains_cstr(StringView string_view, char* cstr);
 
 StringView string_view_trimmed(StringView string_view);
 void string_view_replace_all(StringView string_view, char find, char replace);

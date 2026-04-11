@@ -12,3 +12,5 @@ set PATH=%~dp0%LIB_DIR%\bin;%PATH%
 @REM START /D "%cd%" "" "%ENTRY%" %ARGS%
 @REM start /b /D %cd% "" "%ENTRY%" %ARGS%
 @REM start /b "" "%ENTRY%" %ARGS%
+
+ENDLOCAL
