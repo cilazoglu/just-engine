@@ -639,6 +639,14 @@ String gen_introspect_file() {
             struct_info->type_name.cstr
         );
     }
+    for (usize i = 0; i < INTROSPECTED_ENUMS.count; i++) {
+        EnumInfo* enum_info = &INTROSPECTED_ENUMS.enums[i];
+        string_builder_append_format(
+            &GEN,
+            " * - %s\n",
+            enum_info->type_name.cstr
+        );
+    }
     string_builder_append_cstr(
         &GEN,
         "*/\n\n"
