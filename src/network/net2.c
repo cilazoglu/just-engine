@@ -33,7 +33,7 @@ void print_openssl_error() {
 }
 
 #pragma region INTERRUPT
-atomic_bool interrupted = 1; // ATOMIC_VAR_INIT(1);
+atomic_bool interrupted = ATOMIC_VAR_INIT(1);
 Socket interrupt_socket;
 
 bool is_interrupted() {

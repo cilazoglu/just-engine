@@ -3639,11 +3639,13 @@ typedef struct {
 
 Coroutine make_coroutine(CoroutineFn fn, void* state, void* data);
 
+// typeof is not standart until c23
+// __typeof__ is implemented in gcc, clang and msvc
 #define alloc_make_coroutine(coroutine, fn, state_val, data_val) \
     do { \
-        typeof((state_val))* alloc_make_coroutine__state = std_malloc(sizeof((state_val))); \
+        __typeof__((state_val))* alloc_make_coroutine__state = std_malloc(sizeof((state_val))); \
         *alloc_make_coroutine__state = (state_val); \
-        typeof((data_val))* alloc_make_coroutine__data = std_malloc(sizeof((data_val))); \
+        __typeof__((data_val))* alloc_make_coroutine__data = std_malloc(sizeof((data_val))); \
         *alloc_make_coroutine__data = (data_val); \
         (coroutine) = make_coroutine((fn), alloc_make_coroutine__state, alloc_make_coroutine__data); \
     } while(0)
