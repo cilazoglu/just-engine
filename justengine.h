@@ -225,6 +225,7 @@ static inline usize filled_length(FillBuffer* buffer) {
  * - handle multi dimension arrays (i.e. arr[3][5][6])
  * - handle type aliasing with `alias()`
  * - function pointer `function_ptr()`
+ * - IMPORTANT: find a way to solve "include order" and "type not defined in introspect file" issues
  */
 
 typedef enum {
