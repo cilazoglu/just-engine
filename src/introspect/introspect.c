@@ -1,7 +1,8 @@
 
 #include "introspect.h"
+#include "intospect_print.h"
 
-void print_indent(uint32 indent_count, IndentToken indent_token) {
+static inline void print_indent(uint32 indent_count, IndentToken indent_token) {
     for (uint32 i = 0; i < indent_count * indent_token.count; i++) {
         printf("%s", indent_token.token);
     }
