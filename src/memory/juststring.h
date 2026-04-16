@@ -3,6 +3,7 @@
 #include "justcstd.h"
 #include "core.h"
 #include "memory/memory.h"
+#include "memory/allocator.h"
 
 bool char_is_eof(char ch);
 bool char_is_whitespace(char ch);
@@ -32,6 +33,7 @@ bool cstr_equals(const char* cstr1, const char* cstr2);
     } while (0)
 
 typedef struct {
+    Allocator allocator;
     usize count;
     usize capacity;
     union {
@@ -72,6 +74,13 @@ String string_with_capacity(usize capacity);
 String string_from_cstr(const char* cstr);
 String string_from_view(StringView string_view);
 String clone_string(String string);
+
+String string_new_in(Allocator allocator);
+String string_with_capacity_in(Allocator allocator, usize capacity);
+String string_from_cstr_in(Allocator allocator, const char* cstr);
+String string_from_view_in(Allocator allocator, StringView string_view);
+String clone_string_in(Allocator allocator, String string);
+
 void clear_string(String* string);
 void free_string(String string);
 

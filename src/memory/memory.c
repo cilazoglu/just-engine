@@ -3,14 +3,6 @@
 
 #include "memory.h"
 
-// Should we have an allocator interface
-typedef enum {
-    BUMP_ALLOCATOR,
-    ARENA_ALLOCATOR,
-    HEAP_ALLOCATOR,
-} Allocator;
-// -----
-
 usize addr_align_up(usize addr, usize align) {
     return (addr + align - 1) & ~(align - 1);
 }

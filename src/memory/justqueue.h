@@ -30,3 +30,20 @@ bool Queue_usize__queue_has_next(Queue_usize* q);
 bool Queue_usize__queue_push(Queue_usize* q, usize item);
 bool Queue_usize__queue_pop(Queue_usize* q, usize* set_item);
 
+typedef struct {
+    usize count; // top
+    usize capacity;
+    usize* items;
+} Stack_usize;
+
+Stack_usize Stack_usize__stack_new(usize capacity);
+void Stack_usize__stack_free(Stack_usize* s);
+void Stack_usize__stack_reset(Stack_usize* s);
+bool Stack_usize__stack_is_full(Stack_usize* s);
+bool Stack_usize__stack_is_empty(Stack_usize* s);
+bool Stack_usize__stack_has_next(Stack_usize* s);
+bool Stack_usize__stack_push(Stack_usize* s, usize item);
+bool Stack_usize__stack_pop(Stack_usize* s, usize* set_item);
+
+// TODO: InfiniteQueue
+// TODO: InfiniteStack

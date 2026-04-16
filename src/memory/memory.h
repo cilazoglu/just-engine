@@ -271,3 +271,6 @@ void free_arena_allocator(ArenaAllocator* arena_allocator);
 void reset_arena_allocator(ArenaAllocator* arena_allocator);
 void* arena_alloc(ArenaAllocator* arena_allocator, usize size);
 void* arena_alloc_aligned(ArenaAllocator* arena_allocator, MemoryLayout layout);
+
+// TODO: StackAllocator:        BumpAllocator which can free the latest allocation, keeps track of the stack of allocations
+// TODO: StackArenaAllocator:   Arena version of StackAllocator

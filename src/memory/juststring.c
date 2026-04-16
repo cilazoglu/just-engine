@@ -85,6 +85,22 @@ String clone_string(String string) {
     };
 }
 
+String string_new_in(Allocator allocator) {
+    String s = {0};
+    s.allocator = allocator;
+    return s;
+}
+
+String string_with_capacity_in(Allocator allocator, usize capacity) {
+    String s = string_new_in(allocator);
+    dynarray_reserve_in(s, .str, capacity);
+    return s;
+}
+
+String string_from_cstr_in(Allocator allocator, const char* cstr);
+String string_from_view_in(Allocator allocator, StringView string_view);
+String clone_string_in(Allocator allocator, String string);
+
 void clear_string(String* string) {
     if (string->count > 0) {
         string->str[0] = '\0';
