@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "memory.h"
+#include "dynarray.h"
 
 #define Queue(Type) Queue_##Type
 #define queue_new(Type) Queue_##Type##__queue_new

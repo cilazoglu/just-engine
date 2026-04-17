@@ -38,6 +38,17 @@ char* cstr_clone(const char* cstr) {
     return cstr_nclone(cstr, cstr_length(cstr));
 }
 
+char* cstr_nclone_in(Allocator allocator, const char* cstr, usize count) {
+    char* cstr_clone = just_alloc_array(allocator, char, count + 1);
+    std_memcpy(cstr_clone, cstr, count);
+    cstr_clone[count] = '\0';
+    return cstr_clone;
+}
+
+char* cstr_clone_in(Allocator allocator, const char* cstr) {
+    return cstr_nclone_in(allocator, cstr, cstr_length(cstr));
+}
+
 bool cstr_equals(const char* cstr1, const char* cstr2) {
     return std_strcmp(cstr1, cstr2) == 0;
 }
@@ -50,7 +61,7 @@ String string_new() {
 
 String string_with_capacity(usize capacity) {
     String s = string_new();
-    dynarray_reserve_custom(s, .str, capacity);
+    dynarray_reserve(s, .str, capacity);
     return s;
 }
 
@@ -97,9 +108,47 @@ String string_with_capacity_in(Allocator allocator, usize capacity) {
     return s;
 }
 
-String string_from_cstr_in(Allocator allocator, const char* cstr);
-String string_from_view_in(Allocator allocator, StringView string_view);
-String clone_string_in(Allocator allocator, String string);
+String string_from_cstr_in(Allocator allocator, const char* cstr) {
+    if (cstr == NULL) {
+        return string_new_in(allocator);
+    }
+    usize count = cstr_length(cstr);
+    return (String) {
+        .allocator = allocator,
+        .count = count,
+        .capacity = count,
+        .str = cstr_nclone_in(allocator, cstr, count),
+    };
+}
+
+String string_from_view_in(Allocator allocator, StringView string_view) {
+    if (string_view.count == 0) {
+        return string_new_in(allocator);
+    }
+    String string = string_with_capacity_in(allocator, string_view.count + 1);
+    std_memcpy(string.str, string_view.str, string_view.count);
+    string.count = string_view.count;
+    string.str[string.count] = '\0';
+    return string;
+}
+
+String clone_string_in(Allocator allocator, String string) {
+    return (String) {
+        .allocator = allocator,
+        .count = string.count,
+        .capacity = string.count,
+        .str = cstr_nclone_in(allocator, string.cstr, string.count),
+    };
+}
+
+void string_reserve(String* string, usize reserve_count) {
+    if (string->allocator.vtable_ptr) {
+        dynarray_reserve_in(*string, .str, reserve_count);
+    }
+    else {
+        dynarray_reserve(*string, .str, reserve_count);
+    }
+}
 
 void clear_string(String* string) {
     if (string->count > 0) {
@@ -109,14 +158,23 @@ void clear_string(String* string) {
 }
 
 void free_string(String string) {
-    std_free(string.str);
+    if (string.allocator.vtable_ptr) {
+        just_free(string.allocator, string.str);
+    }
+    else {
+        std_free(string.str);
+    }
+}
+
+StringView cstrn_as_view(char* cstr, usize count) {
+    return (StringView) {
+        .count = count,
+        .str = cstr,
+    };
 }
 
 StringView cstr_as_view(char* cstr) {
-    return (StringView) {
-        .count = cstr_length(cstr),
-        .str = cstr,
-    };
+    return cstrn_as_view(cstr, cstr_length(cstr));
 }
 
 bool ss_equals(String s1, String s2) {
@@ -194,21 +252,21 @@ bool sv_parse_int64(StringView sv, int64* out) {
 }
 
 void string_push_char(String* string, char ch) {
-    dynarray_reserve_custom(*string, .str, 1 + 1);
+    string_reserve(string, 1+1);
     string->str[string->count] = ch;
     string->count++;
     string->str[string->count] = '\0';
 }
 
-static inline void string_nappend_cstr_cap_unchecked(String* string, char* cstr, usize count) {
+static inline void string_nappend_cstr_capacity_unchecked(String* string, char* cstr, usize count) {
     std_memcpy(string->str + string->count, cstr, count);
     string->count += count;
     string->str[string->count] = '\0';
 }
 
 void string_nappend_cstr(String* string, char* cstr, usize count) {
-    dynarray_reserve_custom(*string, .str, count + 1);
-    string_nappend_cstr_cap_unchecked(string, cstr, count);
+    string_reserve(string, count+1);
+    string_nappend_cstr_capacity_unchecked(string, cstr, count);
 }
 
 void string_append_cstr(String* string, char* cstr) {
@@ -221,8 +279,8 @@ void string_append_sv(String* string, StringView sv) {
 
 String new_string_merged(String s1, String s2) {
     String s = string_with_capacity(s1.count + s2.count + 1);
-    string_nappend_cstr_cap_unchecked(&s, s1.str, s1.count);
-    string_nappend_cstr_cap_unchecked(&s, s2.str, s2.count);
+    string_nappend_cstr_capacity_unchecked(&s, s1.str, s1.count);
+    string_nappend_cstr_capacity_unchecked(&s, s2.str, s2.count);
     return s;
 }
 
@@ -640,10 +698,22 @@ StringBuilder string_builder_new() {
     return (StringBuilder) {0};
 }
 
+StringBuilder string_builder_new_in(Allocator allocator) {
+    StringBuilder sb = string_builder_new();
+    sb.allocator = allocator;
+    return sb;
+}
+
 String build_string(StringBuilder* builder) {
     usize total_count = builder->total_count;
 
-    char* str = std_malloc(total_count + 1);
+    char* str;
+    if (ALLOCATOR_IS_NULL(builder->allocator)) {
+        str = std_malloc(total_count + 1);
+    }
+    else {
+        str = just_alloc_array(builder->allocator, char, total_count+1);
+    }
     str[total_count] = '\0';
 
     char* str_cursor = str;
@@ -652,7 +722,12 @@ String build_string(StringBuilder* builder) {
     while(node != NULL) {
         std_memcpy(str_cursor, node->str, node->count);
         if (node->auto_free) {
-            std_free(node->str);
+            if (ALLOCATOR_IS_NULL(node->allocator)) {
+                std_free(node->str);
+            }
+            else {
+                just_free(node->allocator, node->str);
+            }
         }
         str_cursor += node->count;
         next = node->next;
@@ -669,10 +744,11 @@ String build_string(StringBuilder* builder) {
     };
 }
 
-void string_builder_nappend_cstr(StringBuilder* builder, char* cstr, usize count) {
+void string_builder_nappend_cstr_in(StringBuilder* builder, Allocator allocator, char* cstr, usize count) {
     struct StringBuilderNode* node = std_malloc(sizeof(StringBuilderNode));
     node->next = NULL;
     node->auto_free = false;
+    node->allocator = allocator;
     node->count = count;
     node->str = cstr;
 
@@ -684,6 +760,15 @@ void string_builder_nappend_cstr(StringBuilder* builder, char* cstr, usize count
         builder->head = node;
     }
     builder->tail = node;
+}
+
+void string_builder_nappend_cstr_in_owned(StringBuilder* builder, Allocator allocator, char* cstr, usize count) {
+    string_builder_nappend_cstr_in(builder, allocator, cstr, count);
+    builder->tail->auto_free = true;
+}
+
+void string_builder_nappend_cstr(StringBuilder* builder, char* cstr, usize count) {
+    string_builder_nappend_cstr_in(builder, NO_ALLOCATOR, cstr, count);
 }
 
 void string_builder_nappend_cstr_owned(StringBuilder* builder, char* cstr, usize count) {
@@ -700,10 +785,10 @@ void string_builder_append_cstr_owned(StringBuilder* builder, char* cstr) {
 }
 
 void string_builder_append_string(StringBuilder* builder, String string) {
-    string_builder_nappend_cstr(builder, string.str, string.count);
+    string_builder_nappend_cstr_in(builder, string.allocator, string.str, string.count);
 }
 
 void string_builder_append_string_owned(StringBuilder* builder, String string) {
-    string_builder_nappend_cstr_owned(builder, string.str, string.count);
+    string_builder_nappend_cstr_in_owned(builder, string.allocator, string.str, string.count);
 }
 

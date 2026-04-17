@@ -741,7 +741,7 @@ void generate_introspect_for_struct(StringView struct_def) {
     expect_token(&tokens_iter, Token_typedef);
     if (next_token(&tokens_iter, &token)) {
         StructInfo struct_info = parse_struct_2(&tokens_iter, token);
-        dynarray_push_back_custom(INTROSPECTED_STRUCTS, .structs, struct_info);
+        dynarray_push_back(INTROSPECTED_STRUCTS, .structs, struct_info);
     }
     else {
         PANIC("Typedef parse error.\n");
@@ -888,7 +888,7 @@ FieldInfoExt parse_field_2(StringTokensIter* tokens_iter, StringTokenOut token) 
                 //     .field_ext = field_ext,
                 // };
                 // return field_info_ext;
-                // dynarray_push_back_custom(struct_info, .fields, field_info_ext);
+                // dynarray_push_back(struct_info, .fields, field_info_ext);
                 
                 // state = FieldParse_Begin;
                 // field_info = (FieldInfo) {0};
@@ -1024,12 +1024,12 @@ UnionInfo parse_union_2(StringTokensIter* tokens_iter, StringTokenOut token) {
         case Token_long_int:
         case Token_long_long_int:
             FieldInfoExt field = parse_field_2(tokens_iter, token);
-            dynarray_push_back_custom(union_info, .variants, field);
+            dynarray_push_back(union_info, .variants, field);
             break;
         default:
             if (token.free_word) {
                 FieldInfoExt field = parse_field_2(tokens_iter, token);
-                dynarray_push_back_custom(union_info, .variants, field);
+                dynarray_push_back(union_info, .variants, field);
             }
             else {
                 string_view_use_as_cstr(token.token, char* token_cstr, ({
@@ -1113,7 +1113,7 @@ StructInfo parse_struct_2(StringTokensIter* tokens_iter, StringTokenOut token) {
         // case Token_struct: // TODO:
         case Token_union:
             // FieldInfoExt union_field = parse_union_2(tokens_iter, token);
-            // dynarray_push_back_custom(struct_info, .fields, union_field);
+            // dynarray_push_back(struct_info, .fields, union_field);
             // break;
         case Token_const:
         case Token_unsigned_short:
@@ -1129,12 +1129,12 @@ StructInfo parse_struct_2(StringTokensIter* tokens_iter, StringTokenOut token) {
         case Token_long_int:
         case Token_long_long_int:
             FieldInfoExt field = parse_field_2(tokens_iter, token);
-            dynarray_push_back_custom(struct_info, .fields, field);
+            dynarray_push_back(struct_info, .fields, field);
             break;
         default:
             if (token.free_word) {
                 FieldInfoExt field = parse_field_2(tokens_iter, token);
-                dynarray_push_back_custom(struct_info, .fields, field);
+                dynarray_push_back(struct_info, .fields, field);
             }
             else {
                 string_view_use_as_cstr(token.token, char* token_cstr, ({
@@ -1251,7 +1251,7 @@ EnumInfo parse_enum(StringTokensIter* tokens_iter, StringTokenOut token) {
     while(next_token(tokens_iter, &token)) {
         if (token.free_word) {
             EnumMemberInfo member = parse_enum_member(tokens_iter, token);
-            dynarray_push_back_custom(enum_info, .members, member);
+            dynarray_push_back(enum_info, .members, member);
         }
         else if (token.id == Token_cr_paren_close) {
             goto END_PARSE_ENUM_MEMBERS;
@@ -1323,7 +1323,7 @@ void generate_introspect_for_enum(StringView enum_def) {
     expect_token(&tokens_iter, Token_typedef);
     if (next_token(&tokens_iter, &token)) {
         EnumInfo enum_info = parse_enum(&tokens_iter, token);
-        dynarray_push_back_custom(INTROSPECTED_ENUMS, .enums, enum_info);
+        dynarray_push_back(INTROSPECTED_ENUMS, .enums, enum_info);
     }
     else {
         PANIC("Typedef parse error.\n");
@@ -1417,7 +1417,7 @@ void generate_introspect_for_enum(StringView enum_def) {
 //                 //     .field_ext = field_ext,
 //                 // };
 //                 // return field_info_ext;
-//                 // dynarray_push_back_custom(struct_info, .fields, field_info_ext);
+//                 // dynarray_push_back(struct_info, .fields, field_info_ext);
                 
 //                 // state = FieldParse_Begin;
 //                 // field_info = (FieldInfo) {0};
@@ -1522,7 +1522,7 @@ void generate_introspect_for_enum(StringView enum_def) {
 //         }
 //         else {
 //             FieldInfoExt field_info_ext = parse_field(tokens_iter, FieldParse_Begin);
-//             dynarray_push_back_custom(union_info, .variants, field_info_ext);
+//             dynarray_push_back(union_info, .variants, field_info_ext);
 //         }
 //     }
 //     expect_token(tokens_iter, Token_cr_paren_close);
@@ -1651,7 +1651,7 @@ void generate_introspect_for_enum(StringView enum_def) {
 //                     .field_info = field_info,
 //                     .field_ext = field_ext,
 //                 };
-//                 dynarray_push_back_custom(struct_info, .fields, field_info_ext);
+//                 dynarray_push_back(struct_info, .fields, field_info_ext);
                 
 //                 state = FieldParse_Begin;
 //                 field_info = (FieldInfo) {0};
@@ -1711,7 +1711,7 @@ void generate_introspect_for_enum(StringView enum_def) {
 //         }
 //     }
 
-//     dynarray_push_back_custom(INTROSPECTED_STRUCTS, .structs, struct_info);
+//     dynarray_push_back(INTROSPECTED_STRUCTS, .structs, struct_info);
 
 //     free_tokens_iter(&tokens_iter);
 // }
@@ -1825,7 +1825,7 @@ StringList EXCLUDE_DIRS = {0};
 void add_as_excluded_file(String filepath) {
     String excluded_filepath = string_new();
     string_append_format(excluded_filepath, "%s/%s", SCANROOT, filepath);
-    dynarray_push_back(EXCLUDE_FILES, excluded_filepath);
+    dynarray_push_back(EXCLUDE_FILES, .items, excluded_filepath);
 }
 
 bool is_file_excluded(String filepath) {
@@ -1840,7 +1840,7 @@ bool is_file_excluded(String filepath) {
 void add_as_excluded_dir(String dirpath) {
     String excluded_dirpath = string_new();
     string_append_format(excluded_dirpath, "%s/%s", SCANROOT, dirpath);
-    dynarray_push_back(EXCLUDE_FILES, dirpath);
+    dynarray_push_back(EXCLUDE_FILES, .items, dirpath);
 }
 
 bool is_dir_excluded(String dirpath) {
@@ -1895,7 +1895,7 @@ void files_in_directory_recursive(String path, FileEntryList* file_entries) {
                         .full_path = full_path,
                         .filename = filename,
                     };
-                    dynarray_push_back(*file_entries, file_entry);
+                    dynarray_push_back(*file_entries, .items, file_entry);
                 }
             }
         }
@@ -1928,7 +1928,7 @@ void list_file_entries(String path, FileEntryList* file_entries) {
             .full_path = clone_string(path),
             .filename = filename,
         };
-        dynarray_push_back(*file_entries, file_entry);
+        dynarray_push_back(*file_entries, .items, file_entry);
     }
 }
 
@@ -1947,17 +1947,17 @@ int main(int argc, char* argv[]) {
     String genoutput_path = string_from_cstr(argv[2]);
 
     StringList include_paths = {0};
-    dynarray_reserve(include_paths, argc - 3);
+    dynarray_reserve(include_paths, .items, argc - 3);
     for (uint32 i = 3; i < argc; i++) {
         String include_path = string_from_cstr(argv[i]);
-        dynarray_push_back(include_paths, include_path);
+        dynarray_push_back(include_paths, .items, include_path);
     }
 
     SCANROOT = clone_string(scanroot_path);
     add_as_excluded_file(genoutput_path);
 
     FileEntryList file_entries = {0};
-    dynarray_reserve(file_entries, 10);
+    dynarray_reserve(file_entries, .items, 10);
     list_file_entries(scanroot_path, &file_entries);
     free_string(scanroot_path);
 
@@ -1973,16 +1973,16 @@ int main(int argc, char* argv[]) {
     }
 
     StringList int_filepaths = {0};
-    dynarray_reserve(int_filepaths, FILE_COUNT);
+    dynarray_reserve(int_filepaths, .items, FILE_COUNT);
     for (usize i = 0; i < FILE_COUNT; i++) {
         String filename = file_entries.items[i].filename;
         String int_filepath = string_new();
         string_append_format(int_filepath, "%s/%s.%s", TEMPDIR_ROOT_PATH.cstr, filename.cstr, INTROSPECT_FILE_SUFFIX_EXT.cstr);
-        dynarray_push_back(int_filepaths, int_filepath);
+        dynarray_push_back(int_filepaths, .items, int_filepath);
     }
 
     ProcessIds process_ids = {0};
-    dynarray_reserve(process_ids, FILE_COUNT);
+    dynarray_reserve(process_ids, .items, FILE_COUNT);
     process_ids.count = FILE_COUNT;
 
     bool spawn_success = true;

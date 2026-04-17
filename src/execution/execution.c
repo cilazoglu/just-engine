@@ -16,7 +16,7 @@ void system_dag_add_system(SystemDAG* dag, SystemFn system) {
     SystemDAGNode node = {
         .system = system,
     };
-    dynarray_push_back_custom(*dag, .nodes, node);
+    dynarray_push_back(*dag, .nodes, node);
 }
 
 void system_dag_add_system_with(SystemDAG* dag, SystemFn system, SystemConstraint constraint) {
@@ -25,19 +25,19 @@ void system_dag_add_system_with(SystemDAG* dag, SystemFn system, SystemConstrain
     ASSERT(!(constraint.run_first && constraint.run_last));
 
     SystemDAGEdges edges_from = {0};
-    dynarray_reserve_custom(edges_from, .edges, constraint.run_after.count);
+    dynarray_reserve(edges_from, .edges, constraint.run_after.count);
     for (usize i = 0; i < constraint.run_after.count; i++) {
         SystemFn s = constraint.run_after.systems[i];
         ASSERT(system_fn_different(s, system));
-        dynarray_push_back_custom(edges_from, .edges, s);
+        dynarray_push_back(edges_from, .edges, s);
     }
     
     SystemDAGEdges edges_into = {0};
-    dynarray_reserve_custom(edges_into, .edges, constraint.run_before.count);
+    dynarray_reserve(edges_into, .edges, constraint.run_before.count);
     for (usize i = 0; i < constraint.run_before.count; i++) {
         SystemFn s = constraint.run_before.systems[i];
         ASSERT(system_fn_different(s, system));
-        dynarray_push_back_custom(edges_into, .edges, s);
+        dynarray_push_back(edges_into, .edges, s);
     }
 
     SystemDAGNode node = {
@@ -46,7 +46,7 @@ void system_dag_add_system_with(SystemDAG* dag, SystemFn system, SystemConstrain
         .edges_into = edges_into,
     };
     usize index = dag->count;
-    dynarray_push_back_custom(*dag, .nodes, node);
+    dynarray_push_back(*dag, .nodes, node);
 
     if (constraint.run_first) {
         dag->first = (Option(usize)) Option_Some(index);
@@ -127,7 +127,7 @@ AppStage app_stage_from_system_dag(int32 stage_id, SystemDAG* dag) {
             if (system_dag_find_system(dag, from_system, &index)) {
                 SystemDAGNode* from_node = &dag->nodes[index];
                 if (!system_dag_edges_find_edge(from_node->edges_into, this_system, NULL)) {
-                    dynarray_push_back_custom(from_node->edges_into, .edges, this_system);
+                    dynarray_push_back(from_node->edges_into, .edges, this_system);
                 } 
             }
         }
@@ -171,7 +171,7 @@ AppStage app_stage_from_system_dag(int32 stage_id, SystemDAG* dag) {
 
     AppStage stage = {0};
     stage.stage_id = stage_id;
-    dynarray_reserve_custom(stage, .systems, dag->count);
+    dynarray_reserve(stage, .systems, dag->count);
 
     usize popped_index;
     while (queue_pop(usize)(&q, &popped_index)) {
@@ -181,7 +181,7 @@ AppStage app_stage_from_system_dag(int32 stage_id, SystemDAG* dag) {
         
         SystemDAGNode* this_node = &dag->nodes[popped_index];
 
-        dynarray_push_back_custom(stage, .systems, this_node->system);
+        dynarray_push_back(stage, .systems, this_node->system);
         
         // Remove deps
         for (usize edge_i = 0; edge_i < this_node->edges_into.count; edge_i++) {
@@ -199,13 +199,13 @@ AppStage app_stage_from_system_dag(int32 stage_id, SystemDAG* dag) {
 
     if (dag->last.is_some) {
         SystemFn last_system = dag->nodes[dag->last.value].system;
-        dynarray_push_back_custom(stage, .systems, last_system);
+        dynarray_push_back(stage, .systems, last_system);
     }
 
     // Circular
     ASSERT(stage.count == dag->count);
 
-    dynarray_free_custom(*dag, .nodes);
+    dynarray_free(*dag, .nodes);
     return stage;
 }
 
@@ -246,7 +246,7 @@ void just_app_add_stage(JustApp* app, AppStage stage) {
             break;
         }
     }
-    dynarray_insert_custom(*app, .stages, i_insert, stage);
+    dynarray_insert(*app, i_insert, .stages, stage);
 }
 
 void just_app_run_once(JustApp* app) {
@@ -271,7 +271,7 @@ static usize just_app_builder_find_or_create_place(JustAppBuilder* app_builder, 
         }
     }
     if (add_index == app_builder->count) {
-        dynarray_push_back_custom_2(*app_builder, .stage_ids, stage_id, .stages, ((SystemDAG){0}));
+        dynarray_push_back2(*app_builder, .stage_ids, stage_id, .stages, ((SystemDAG){0}));
     }
     return add_index;
 }
@@ -314,7 +314,7 @@ JustApp just_app_builder_build_app(JustAppBuilder* app_builder) {
         AppStage app_stage = app_stage_from_system_dag(stage_id, dag);
         just_app_add_stage(&app, app_stage);
     }
-    dynarray_free_custom_2(*app_builder, .stage_ids, .stages);
+    dynarray_free2(*app_builder, .stage_ids, .stages);
     return app;
 }
 

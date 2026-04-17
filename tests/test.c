@@ -70,8 +70,8 @@ void reset_test_tween_sequence(TweenSequence_Vector2* tween_seq) {
             .start = {100, 100},
             .end = {100 + pathlen, 100},
         };  
-        dynarray_push_back(tween_seq->state.sections, section);
-        dynarray_push_back(tween_seq->limits_list, limits);
+        dynarray_push_back(tween_seq->state.sections, .items, section);
+        dynarray_push_back(tween_seq->limits_list, .items, limits);
     }
     i = 1;
     {
@@ -84,8 +84,8 @@ void reset_test_tween_sequence(TweenSequence_Vector2* tween_seq) {
             .start = prev_end,
             .end = {prev_end.x, prev_end.y + pathlen},
         };  
-        dynarray_push_back(tween_seq->state.sections, section);
-        dynarray_push_back(tween_seq->limits_list, limits);
+        dynarray_push_back(tween_seq->state.sections, .items, section);
+        dynarray_push_back(tween_seq->limits_list, .items, limits);
     }
     i = 2;
     {
@@ -98,8 +98,8 @@ void reset_test_tween_sequence(TweenSequence_Vector2* tween_seq) {
             .start = prev_end,
             .end = prev_end,
         };  
-        dynarray_push_back(tween_seq->state.sections, section);
-        dynarray_push_back(tween_seq->limits_list, limits);
+        dynarray_push_back(tween_seq->state.sections, .items, section);
+        dynarray_push_back(tween_seq->limits_list, .items, limits);
     }
     i = 3;
     {
@@ -112,8 +112,8 @@ void reset_test_tween_sequence(TweenSequence_Vector2* tween_seq) {
             .start = prev_end,
             .end = {prev_end.x - pathlen, prev_end.y},
         };  
-        dynarray_push_back(tween_seq->state.sections, section);
-        dynarray_push_back(tween_seq->limits_list, limits);
+        dynarray_push_back(tween_seq->state.sections, .items, section);
+        dynarray_push_back(tween_seq->limits_list, .items, limits);
     }
 }
 
@@ -230,9 +230,9 @@ int main() {
         test_struct,
     };
     TestStruct_DynArray test_struct_dynarr = {0};
-    dynarray_push_back(test_struct_dynarr, test_struct);
-    dynarray_push_back(test_struct_dynarr, test_struct);
-    dynarray_push_back(test_struct_dynarr, test_struct);
+    dynarray_push_back(test_struct_dynarr, .items, test_struct);
+    dynarray_push_back(test_struct_dynarr, .items, test_struct);
+    dynarray_push_back(test_struct_dynarr, .items, test_struct);
 
     while (!WindowShouldClose()) {
         float32 delta_time = GetFrameTime();

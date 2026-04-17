@@ -8,12 +8,12 @@ static Allocator DEFAULT_ALLOCATOR = {0};
 static AllocatorVTable ALLOCATOR_VTABLE = {0};
 
 void allocator_vtable_reserve(usize count) {
-    dynarray_reserve_custom(ALLOCATOR_VTABLE, .rows, count);
+    dynarray_reserve(ALLOCATOR_VTABLE, .rows, count);
 }
 
 // NOTE: requires strict all-reserves => all-adds order
 AllocatorFns* allocator_vtable_add_entry(AllocatorFns allocator_fns_impl) {
-    dynarray_push_back_custom(ALLOCATOR_VTABLE, .rows, allocator_fns_impl);
+    dynarray_push_back(ALLOCATOR_VTABLE, .rows, allocator_fns_impl);
     return &ALLOCATOR_VTABLE.rows[ALLOCATOR_VTABLE.count - 1];
 }
 
@@ -62,7 +62,7 @@ static void* std_heap_alloc(void* allocator_data, MemoryLayout layout) {
 static void* std_heap_realloc(void* allocator_data, void* ptr, MemoryLayout layout) {
     return std_realloc(ptr, layout.size); // realloc is always system highest aligned
 }
-static void* std_heap_free(void* allocator_data, void* ptr) {
+static void std_heap_free(void* allocator_data, void* ptr) {
     std_free(ptr);
 }
 static void std_heap_allocator__allocator_vtable_add_entry() {
@@ -90,7 +90,7 @@ static void* just_bump_realloc(void* allocator_data, void* ptr, MemoryLayout lay
     std_memcpy(new_ptr, ptr, layout.size);
     return new_ptr;
 }
-static void* just_bump_free(void* allocator_data, void* ptr) {
+static void just_bump_free(void* allocator_data, void* ptr) {
     // TODO: could free if ptr is the last allocated
     // pass
 }
@@ -109,6 +109,12 @@ Allocator just_bump_allocator(usize size) {
         .vtable_ptr = just_bump_allocator_fns,
     };
 }
+Allocator just_as_bump_allocator(BumpAllocator* bump_allocator) {
+    return (Allocator) {
+        .data = bump_allocator,
+        .vtable_ptr = just_bump_allocator_fns,
+    };
+}
 
 static AllocatorFns* just_arena_allocator_fns;
 static void* just_arena_alloc(void* allocator_data, MemoryLayout layout) {
@@ -121,7 +127,7 @@ static void* just_arena_realloc(void* allocator_data, void* ptr, MemoryLayout la
     std_memcpy(new_ptr, ptr, layout.size);
     return new_ptr;
 }
-static void* just_arena_free(void* allocator_data, void* ptr) {
+static void just_arena_free(void* allocator_data, void* ptr) {
     // TODO: could free if ptr is the last allocated in any region
     // pass
 }
@@ -140,6 +146,12 @@ Allocator just_arena_allocator(usize region_size) {
         .vtable_ptr = just_arena_allocator_fns,
     };
 }
+Allocator just_as_arena_allocator(ArenaAllocator* arena_allocator) {
+    return (Allocator) {
+        .data = arena_allocator,
+        .vtable_ptr = just_arena_allocator_fns,
+    };
+}
 
 void just_engine__allocator_vtable_add_entries() {
     std_heap_allocator__allocator_vtable_add_entry();
@@ -147,3 +159,4 @@ void just_engine__allocator_vtable_add_entries() {
     just_arena_allocator__allocator_vtable_add_entry();
     set_default_allocator(std_heap_allocator());
 }
+

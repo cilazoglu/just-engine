@@ -176,7 +176,7 @@ void JustClay_OnHover(Clay_OnHoverFunction onHoverFunction, intptr_t userData) {
                 .state = {0},
             },
         };
-        dynarray_push_back(JUSTCLAY_ELEMENT_STORE, elemkv);
+        dynarray_push_back(JUSTCLAY_ELEMENT_STORE, .items, elemkv);
         this_elemkv = &JUSTCLAY_ELEMENT_STORE.items[JUSTCLAY_ELEMENT_STORE.count-1];
     }
 
@@ -335,7 +335,7 @@ void SYSTEM_RENDER_justclay_ui(
 
             // Raylib uses standard C strings so isn't compatible with cheap slices, we need to clone the string to append null terminator
             clear_string(&TEMP_STRING);
-            dynarray_reserve_custom(TEMP_STRING, .str, textData->stringContents.length);
+            dynarray_reserve(TEMP_STRING, .str, textData->stringContents.length);
             string_nappend_cstr(&TEMP_STRING, (char*) textData->stringContents.chars, textData->stringContents.length);
 
             DrawTextEx(

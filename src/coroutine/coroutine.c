@@ -1,5 +1,6 @@
 
 #include "memory/memory.h"
+#include "memory/dynarray.h"
 
 #include "coroutine.h"
 
@@ -36,12 +37,12 @@ bool add_coroutine(CoroutineExecutor* executor, Coroutine coroutine) {
     if (find_coroutine(executor, coroutine, NULL)) {
         return false;
     }
-    dynarray_push_back_custom(executor->coroutine_list, .coroutines, coroutine);
+    dynarray_push_back(executor->coroutine_list, .coroutines, coroutine);
     return true;
 }
 
 static void remove_coroutine_on_index(CoroutineExecutor* executor, usize index) {
-    dynarray_swap_remove_custom(executor->coroutine_list, .coroutines, index);
+    dynarray_swap_remove(executor->coroutine_list, index, .coroutines);
 }
 
 bool remove_coroutine(CoroutineExecutor* executor, Coroutine coroutine) {

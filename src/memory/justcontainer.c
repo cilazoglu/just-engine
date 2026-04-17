@@ -1,16 +1,16 @@
 
-#include "justqueue.h"
+#include "justcontainer.h"
 
 // Queue
 
 Queue_usize Queue_usize__queue_new(usize capacity) {
     Queue_usize q = {0};
-    dynarray_reserve(q, capacity);
+    dynarray_reserve(q, .items, capacity);
     return q;
 }
 
 void Queue_usize__queue_free(Queue_usize* q) {
-    dynarray_free(*q);
+    dynarray_free(*q, .items);
 }
 
 void Queue_usize__queue_reset(Queue_usize* q) {
@@ -55,12 +55,12 @@ bool Queue_usize__queue_pop(Queue_usize* q, usize* set_item) {
 
 Stack_usize Stack_usize__stack_new(usize capacity) {
     Stack_usize s = {0};
-    dynarray_reserve(s, capacity);
+    dynarray_reserve(s, .items, capacity);
     return s;
 }
 
 void Stack_usize__stack_free(Stack_usize* s) {
-    dynarray_free(*s);
+    dynarray_free(*s, .items);
 }
 
 void Stack_usize__stack_reset(Stack_usize* s) {

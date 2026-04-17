@@ -149,16 +149,16 @@ int main() {
     };
 
     FontList RES_FONT_LIST = {0};
-    dynarray_reserve_custom(RES_FONT_LIST, .fonts, 2);
+    dynarray_reserve(RES_FONT_LIST, .fonts, 2);
     {
         Font font_body_24 = LoadFontEx("./test-assets/Roboto-Regular.ttf", 24, 0, 400);
         SetTextureFilter(font_body_24.texture, TEXTURE_FILTER_BILINEAR);
-        dynarray_push_back_custom(RES_FONT_LIST, .fonts, font_body_24);
+        dynarray_push_back(RES_FONT_LIST, .fonts, font_body_24);
     }
     {
         Font font_body_16 = LoadFontEx("./test-assets/Roboto-Regular.ttf", 16, 0, 400);
         SetTextureFilter(font_body_16.texture, TEXTURE_FILTER_BILINEAR);
-        dynarray_push_back_custom(RES_FONT_LIST, .fonts, font_body_16);
+        dynarray_push_back(RES_FONT_LIST, .fonts, font_body_16);
     }
 
     initialize_justclay(&RES_FONT_LIST);

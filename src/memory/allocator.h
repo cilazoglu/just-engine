@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "memory.h"
+#include "dynarray.h"
 
 typedef void* (*AllocFn)(void* allocator_data, MemoryLayout layout);
 typedef void* (*ReallocFn)(void* allocator_data, void* ptr, MemoryLayout layout);
@@ -29,6 +30,9 @@ typedef struct {
     AllocatorFns* vtable_ptr;
 } Allocator;
 
+#define NO_ALLOCATOR (Allocator){0}
+#define ALLOCATOR_IS_NULL(allocator) ((allocator).vtable_ptr == NULL)
+
 void set_default_allocator(Allocator allocator);
 
 #define just_alloc_single(allocator, Type)          just_alloc_aligned((allocator), layoutof(Type))
@@ -50,6 +54,9 @@ void just_engine__allocator_vtable_add_entries();
 Allocator std_heap_allocator();                     // C malloc-free
 Allocator just_bump_allocator(usize size);          // BumpAllocator
 Allocator just_arena_allocator(usize region_size);  // ArenaAllocator
+
+Allocator just_as_bump_allocator(BumpAllocator* bump_allocator);
+Allocator just_as_arena_allocator(ArenaAllocator* arena_allocator);
 
 // Example
 #if 0

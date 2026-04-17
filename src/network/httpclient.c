@@ -25,7 +25,7 @@ HttpHeaders http_headers_from_static(char* kv_list[][2], usize count) {
             .key = string_from_cstr(kv_list[i][0]),
             .value = string_from_cstr(kv_list[i][1]),
         };
-        dynarray_push_back_custom(headers, .headers, header);
+        dynarray_push_back(headers, .headers, header);
     }
     return headers;
 }
@@ -35,7 +35,7 @@ void http_headers_add_header_static(HttpHeaders* headers, char* key, char* value
         .key = string_from_cstr(key),
         .value = string_from_cstr(value),
     };
-    dynarray_push_back_custom(*headers, .headers, header);
+    dynarray_push_back(*headers, .headers, header);
 }
 
 HttpRequest* http_request_easy_init() {

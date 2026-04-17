@@ -873,210 +873,6 @@ static inline Vector2 vector2_yx(Vector2 vec) {
 #define __HEADER_MEMORY_MEMORY
 #ifdef __HEADER_MEMORY_MEMORY
 
-#define dynarray_clear(arr) \
-    do { \
-        (arr).count = 0; \
-    } while(0)
-
-#define dynarray_free(arr) \
-    do { \
-        if ((arr).capacity > 0) { \
-            (arr).count = 0; \
-            (arr).capacity = 0; \
-            std_free((arr).items); \
-        } \
-    } while(0)
-
-#define dynarray_free_custom(arr, items_field) \
-    do { \
-        if ((arr).capacity > 0) { \
-            (arr).count = 0; \
-            (arr).capacity = 0; \
-            std_free((arr)items_field); \
-        } \
-    } while(0)
-
-#define dynarray_free_custom_2(arr, items_field_1, items_field_2) \
-    do { \
-        if ((arr).capacity > 0) { \
-            (arr).count = 0; \
-            (arr).capacity = 0; \
-            std_free((arr)items_field_1); \
-            std_free((arr)items_field_2); \
-        } \
-    } while(0)
-
-#define dynarray_reserve(arr, reserve_count) \
-    do { \
-        usize dynarray_reserve__new_capacity = (arr).count + reserve_count; \
-        if ((arr).capacity < dynarray_reserve__new_capacity) { \
-            (arr).capacity = dynarray_reserve__new_capacity; \
-            (arr).items = std_realloc((arr).items, (arr).capacity * sizeof((arr).items[0])); \
-        } \
-    } while(0)
-
-#define dynarray_reserve_custom(arr, items_field, reserve_count) \
-    do { \
-        usize dynarray_reserve_custom__new_capacity = (arr).count + reserve_count; \
-        if ((arr).capacity < dynarray_reserve_custom__new_capacity) { \
-            (arr).capacity = dynarray_reserve_custom__new_capacity; \
-            (arr)items_field = std_realloc((arr)items_field, (arr).capacity * sizeof((arr)items_field[0])); \
-        } \
-    } while(0)
-
-#define dynarray_reserve_custom_2(arr, items_field_1, items_field_2, reserve_count) \
-    do { \
-        usize dynarray_reserve_custom__new_capacity = (arr).count + reserve_count; \
-        if ((arr).capacity < dynarray_reserve_custom__new_capacity) { \
-            (arr).capacity = dynarray_reserve_custom__new_capacity; \
-            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((arr)items_field_1[0])); \
-            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((arr)items_field_2[0])); \
-        } \
-    } while(0)
-
-#define dynarray_push_back(arr, item) \
-    do { \
-        const uint32 DYNARRAY_INITIAL_CAPACITY = 2; \
-        const uint32 DYNARRAY_GROWTH_FACTOR = 2; \
-\
-        if ((arr).capacity == 0) { \
-            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
-            (arr).items = std_malloc((arr).capacity * sizeof((item))); \
-        } \
-        else if ((arr).count == (arr).capacity) { \
-            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
-            (arr).items = std_realloc((arr).items, (arr).capacity * sizeof((item))); \
-        } \
-        \
-        (arr).items[(arr).count] = (item); \
-        (arr).count++; \
-    } while(0)
-
-#define dynarray_push_back_custom(arr, items_field, item) \
-    do { \
-        const uint32 DYNARRAY_INITIAL_CAPACITY = 2; \
-        const uint32 DYNARRAY_GROWTH_FACTOR = 2; \
-\
-        if ((arr).capacity == 0) { \
-            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
-            (arr)items_field = std_malloc((arr).capacity * sizeof((item))); \
-        } \
-        else if ((arr).count == (arr).capacity) { \
-            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
-            (arr)items_field = std_realloc((arr)items_field, (arr).capacity * sizeof((item))); \
-        } \
-        \
-        (arr)items_field[(arr).count] = (item); \
-        (arr).count++; \
-    } while(0)
-
-
-#define dynarray_push_back_custom_2(arr, items_field_1, item_1, items_field_2, item_2) \
-    do { \
-        const uint32 DYNARRAY_INITIAL_CAPACITY = 2; \
-        const uint32 DYNARRAY_GROWTH_FACTOR = 2; \
-\
-        if ((arr).capacity == 0) { \
-            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
-            (arr)items_field_1 = std_malloc((arr).capacity * sizeof((item_1))); \
-            (arr)items_field_2 = std_malloc((arr).capacity * sizeof((item_2))); \
-        } \
-        else if ((arr).count == (arr).capacity) { \
-            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
-            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((item_1))); \
-            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((item_2))); \
-        } \
-        \
-        (arr)items_field_1[(arr).count] = (item_1); \
-        (arr)items_field_2[(arr).count] = (item_2); \
-        (arr).count++; \
-    } while(0)
-
-#define dynarray_push_back_custom_3(arr, items_field_1, item_1, items_field_2, item_2, items_field_3, item_3) \
-    do { \
-        const uint32 DYNARRAY_INITIAL_CAPACITY = 2; \
-        const uint32 DYNARRAY_GROWTH_FACTOR = 2; \
-\
-        if ((arr).capacity == 0) { \
-            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
-            (arr)items_field_1 = std_malloc((arr).capacity * sizeof((item_1))); \
-            (arr)items_field_2 = std_malloc((arr).capacity * sizeof((item_2))); \
-            (arr)items_field_3 = std_malloc((arr).capacity * sizeof((item_3))); \
-        } \
-        else if ((arr).count == (arr).capacity) { \
-            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
-            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((item_1))); \
-            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((item_2))); \
-            (arr)items_field_3 = std_realloc((arr)items_field_3, (arr).capacity * sizeof((item_3))); \
-        } \
-        \
-        (arr)items_field_1[(arr).count] = (item_1); \
-        (arr)items_field_2[(arr).count] = (item_2); \
-        (arr)items_field_3[(arr).count] = (item_3); \
-        (arr).count++; \
-    } while(0)
-
-#define dynarray_insert(arr, index, item) \
-    do { \
-        usize dynarray_insert__index = MIN(index, (arr).count); \
-        dynarray_reserve((arr), 1); \
-        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
-            (arr).items[dynarray_insert__i] = (arr).items[dynarray_insert__i - 1]; \
-        } \
-        (arr).items[dynarray_insert__index] = item; \
-        (arr).count++; \
-    } while(0)
-
-#define dynarray_insert_custom(arr, items_field, index, item) \
-    do { \
-        usize dynarray_insert__index = MIN(index, (arr).count); \
-        dynarray_reserve_custom((arr), items_field, 1); \
-        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
-            (arr)items_field[dynarray_insert__i] = (arr)items_field[dynarray_insert__i - 1]; \
-        } \
-        (arr)items_field[dynarray_insert__index] = item; \
-        (arr).count++; \
-    } while(0)
-
-#define dynarray_swap_remove(arr, index) \
-    do { \
-        (arr).items[index] = (arr).items[(arr).count - 1]; \
-        (arr).count--; \
-    } while(0)
-
-#define dynarray_swap_remove_custom(arr, items_field, index) \
-    do { \
-        (arr)items_field[index] = (arr)items_field[(arr).count - 1]; \
-        (arr).count--; \
-    } while(0)
-
-#define dynarray_swap_remove_custom_2(arr, items_field_1, items_field_2, index) \
-    do { \
-        (arr)items_field_1[index] = (arr)items_field_1[(arr).count - 1]; \
-        (arr)items_field_2[index] = (arr)items_field_2[(arr).count - 1]; \
-        (arr).count--; \
-    } while(0)
-
-#define dynarray_clone(dst_arr, src_arr) \
-    do { \
-        usize dynarray_clone__size = sizeof(*(dst_arr).items) * (dst_arr).count; \
-        (src_arr).count = (dst_arr).count; \
-        (src_arr).capacity = (dst_arr).count; \
-        (src_arr).items = (dst_arr).items; \
-        (src_arr).items = std_malloc(dynarray_clone__size); \
-        std_memcpy((src_arr).items, (dst_arr).items, dynarray_clone__size); \
-    } while(0)
-
-#define dynarray_clone_custom(dst_arr, src_arr, items_field) \
-    do { \
-        usize dynarray_clone_custom__size = sizeof(*(dst_arr)items_field) * (dst_arr).count; \
-        (src_arr).count = (dst_arr).count; \
-        (src_arr).capacity = (dst_arr).count; \
-        (src_arr)items_field = (dst_arr)items_field; \
-        (src_arr)items_field = std_malloc(dynarray_clone_custom__size); \
-        std_memcpy((src_arr)items_field, (dst_arr)items_field, dynarray_clone_custom__size); \
-    } while(0)
-
 static inline Buffer* malloc_buffer(usize size) {
     Buffer* buffer = std_malloc(sizeof(Buffer) + size); // Buffer + [bytes]
     buffer->length = size;
@@ -1143,7 +939,571 @@ void reset_arena_allocator(ArenaAllocator* arena_allocator);
 void* arena_alloc(ArenaAllocator* arena_allocator, usize size);
 void* arena_alloc_aligned(ArenaAllocator* arena_allocator, MemoryLayout layout);
 
+// TODO: StackAllocator:        BumpAllocator which can free the latest allocation, keeps track of the stack of allocations
+// TODO: StackArenaAllocator:   Arena version of StackAllocator
+
 #endif // __HEADER_MEMORY_MEMORY
+
+#define __HEADER_MEMORY_DYNARRAY
+#ifdef __HEADER_MEMORY_DYNARRAY
+
+// NOTE: use of __typeof__
+
+// ------------------------------------
+// ------------------------------------
+// dynarray<T_Size, ...T_Item_I>:
+// - Allocator? allocator
+// - T_Size count
+// - T_Size capacity
+// - [...T_Item_I* {items_field_i}]
+// ------------------------------------
+// ------------------------------------
+
+#define dynarray_inmacro_variable_prefix __dynarray_inmacro_variable_prefix__
+#define DYNARRAY_INITIAL_CAPACITY 2
+#define DYNARRAY_GROWTH_FACTOR 2
+
+// clear:
+// - .count
+
+#define dynarray_clear(arr) \
+    do { \
+        (arr).count = 0; \
+    } while(0)
+
+// free:
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_free(arr, items_field) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            std_free((arr)items_field); \
+        } \
+    } while(0)
+
+#define dynarray_free2(arr, items_field_1, items_field_2) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            std_free((arr)items_field_1); \
+            std_free((arr)items_field_2); \
+        } \
+    } while(0)
+
+#define dynarray_free3(arr, items_field_1, items_field_2, items_field_3) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            std_free((arr)items_field_1); \
+            std_free((arr)items_field_2); \
+            std_free((arr)items_field_3); \
+        } \
+    } while(0)
+
+// free_in:
+// - .allocator
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_free_in(arr, items_field) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            just_free((arr).allocator, (arr)items_field); \
+        } \
+    } while(0)
+
+#define dynarray_free2_in(arr, items_field_1, items_field_2) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            just_free((arr).allocator, (arr)items_field_1); \
+            just_free((arr).allocator, (arr)items_field_2); \
+        } \
+    } while(0)
+
+#define dynarray_free3_in(arr, items_field_1, items_field_2, items_field_3) \
+    do { \
+        if ((arr).capacity > 0) { \
+            (arr).count = 0; \
+            (arr).capacity = 0; \
+            just_free((arr).allocator, (arr)items_field_1); \
+            just_free((arr).allocator, (arr)items_field_2); \
+            just_free((arr).allocator, (arr)items_field_3); \
+        } \
+    } while(0)
+
+// reserve:
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_reserve(arr, items_field, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field = std_realloc((arr)items_field, (arr).capacity * sizeof((arr)items_field[0])); \
+        } \
+    } while(0)
+
+#define dynarray_reserve2(arr, items_field_1, items_field_2, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((arr)items_field_1[0])); \
+            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((arr)items_field_2[0])); \
+        } \
+    } while(0)
+
+#define dynarray_reserve3(arr, items_field_1, items_field_2, items_field_3, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((arr)items_field_1[0])); \
+            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((arr)items_field_2[0])); \
+            (arr)items_field_3 = std_realloc((arr)items_field_3, (arr).capacity * sizeof((arr)items_field_3[0])); \
+        } \
+    } while(0)
+
+// reserve_in:
+// - .allocator
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_reserve_in(arr, items_field, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field = just_realloc_array((arr).allocator, /*Type*/((arr)items_field[0]), /*ptr*/((arr)items_field), /*count*/((arr).capacity)); \
+        } \
+    } while(0)
+
+#define dynarray_reserve2_in(arr, items_field_1, items_field_2, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field_1 = just_realloc_array((arr).allocator, /*Type*/((arr)items_field_1[0]), /*ptr*/((arr)items_field_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_realloc_array((arr).allocator, /*Type*/((arr)items_field_2[0]), /*ptr*/((arr)items_field_2), /*count*/((arr).capacity)); \
+        } \
+    } while(0)
+
+#define dynarray_reserve3_in(arr, items_field_1, items_field_2, items_field_3, reserve_count) \
+    do { \
+        __typeof__((arr).capacity) dynarray_reserve__new_capacity = (arr).count + reserve_count; \
+        if ((arr).capacity < dynarray_reserve__new_capacity) { \
+            (arr).capacity = dynarray_reserve__new_capacity; \
+            (arr)items_field_1 = just_realloc_array((arr).allocator, /*Type*/((arr)items_field_1[0]), /*ptr*/((arr)items_field_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_realloc_array((arr).allocator, /*Type*/((arr)items_field_2[0]), /*ptr*/((arr)items_field_2), /*count*/((arr).capacity)); \
+            (arr)items_field_3 = just_realloc_array((arr).allocator, /*Type*/((arr)items_field_3[0]), /*ptr*/((arr)items_field_3), /*count*/((arr).capacity)); \
+        } \
+    } while(0)
+
+// push_back:
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_push_back(arr, items_field, item) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field = std_malloc((arr).capacity * sizeof((item))); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field = std_realloc((arr)items_field, (arr).capacity * sizeof((item))); \
+        } \
+        \
+        (arr)items_field[(arr).count] = (item); \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_push_back2(arr, items_field_1, item_1, items_field_2, item_2) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field_1 = std_malloc((arr).capacity * sizeof((item_1))); \
+            (arr)items_field_2 = std_malloc((arr).capacity * sizeof((item_2))); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((item_1))); \
+            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((item_2))); \
+        } \
+        \
+        (arr)items_field_1[(arr).count] = (item_1); \
+        (arr)items_field_2[(arr).count] = (item_2); \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_push_back3(arr, items_field_1, item_1, items_field_2, item_2, items_field_3, item_3) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field_1 = std_malloc((arr).capacity * sizeof((item_1))); \
+            (arr)items_field_2 = std_malloc((arr).capacity * sizeof((item_2))); \
+            (arr)items_field_3 = std_malloc((arr).capacity * sizeof((item_3))); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field_1 = std_realloc((arr)items_field_1, (arr).capacity * sizeof((item_1))); \
+            (arr)items_field_2 = std_realloc((arr)items_field_2, (arr).capacity * sizeof((item_2))); \
+            (arr)items_field_3 = std_realloc((arr)items_field_3, (arr).capacity * sizeof((item_3))); \
+        } \
+        \
+        (arr)items_field_1[(arr).count] = (item_1); \
+        (arr)items_field_2[(arr).count] = (item_2); \
+        (arr)items_field_3[(arr).count] = (item_3); \
+        (arr).count++; \
+    } while(0)
+
+// push_back_in:
+// - .allocator
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_push_back_in(arr, items_field, item) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field = just_alloc_array((arr).allocator, /*Type*/(item), /*count*/((arr).capacity)); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field = just_realloc_array((arr).allocator, /*Type*/(item), /*ptr*/((arr)items_field), /*count*/((arr).capacity)); \
+        } \
+        \
+        (arr)items_field[(arr).count] = (item); \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_push_back2_in(arr, items_field_1, item_1, items_field_2, item_2) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field_1 = just_alloc_array((arr).allocator, /*Type*/(item_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_alloc_array((arr).allocator, /*Type*/(item_2), /*count*/((arr).capacity)); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field_1 = just_realloc_array((arr).allocator, /*Type*/(item_1), /*ptr*/((arr)items_field_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_realloc_array((arr).allocator, /*Type*/(item_2), /*ptr*/((arr)items_field_2), /*count*/((arr).capacity)); \
+        } \
+        \
+        (arr)items_field_1[(arr).count] = (item_1); \
+        (arr)items_field_2[(arr).count] = (item_2); \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_push_back3_in(arr, items_field_1, item_1, items_field_2, item_2, items_field_3, item_3) \
+    do { \
+        if ((arr).capacity == 0) { \
+            (arr).capacity = DYNARRAY_INITIAL_CAPACITY; \
+            (arr)items_field_1 = just_alloc_array((arr).allocator, /*Type*/(item_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_alloc_array((arr).allocator, /*Type*/(item_2), /*count*/((arr).capacity)); \
+            (arr)items_field_3 = just_alloc_array((arr).allocator, /*Type*/(item_3), /*count*/((arr).capacity)); \
+        } \
+        else if ((arr).count == (arr).capacity) { \
+            (arr).capacity = DYNARRAY_GROWTH_FACTOR * (arr).capacity; \
+            (arr)items_field_1 = just_realloc_array((arr).allocator, /*Type*/(item_1), /*ptr*/((arr)items_field_1), /*count*/((arr).capacity)); \
+            (arr)items_field_2 = just_realloc_array((arr).allocator, /*Type*/(item_2), /*ptr*/((arr)items_field_2), /*count*/((arr).capacity)); \
+            (arr)items_field_3 = just_realloc_array((arr).allocator, /*Type*/(item_3), /*ptr*/((arr)items_field_3), /*count*/((arr).capacity)); \
+        } \
+        \
+        (arr)items_field_1[(arr).count] = (item_1); \
+        (arr)items_field_2[(arr).count] = (item_2); \
+        (arr)items_field_3[(arr).count] = (item_3); \
+        (arr).count++; \
+    } while(0)
+
+// insert:
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_insert(arr, index, items_field, item) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field[dynarray_insert__i] = (arr)items_field[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field[dynarray_insert__index] = item; \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_insert2(arr, index, items_field_1, item_1, items_field_2, item_2) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field_1[dynarray_insert__i] = (arr)items_field_1[dynarray_insert__i - 1]; \
+            (arr)items_field_2[dynarray_insert__i] = (arr)items_field_2[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field_1[dynarray_insert__index] = item_1; \
+        (arr)items_field_2[dynarray_insert__index] = item_2; \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_insert3(arr, index, items_field_1, item_1, items_field_2, item_2, items_field_3, item_3) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field_1[dynarray_insert__i] = (arr)items_field_1[dynarray_insert__i - 1]; \
+            (arr)items_field_2[dynarray_insert__i] = (arr)items_field_2[dynarray_insert__i - 1]; \
+            (arr)items_field_3[dynarray_insert__i] = (arr)items_field_3[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field_1[dynarray_insert__index] = item_1; \
+        (arr)items_field_2[dynarray_insert__index] = item_2; \
+        (arr)items_field_3[dynarray_insert__index] = item_3; \
+        (arr).count++; \
+    } while(0)
+
+// insert_in:
+// - .allocator
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_insert_in(arr, index, items_field, item) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve_in((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field[dynarray_insert__i] = (arr)items_field[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field[dynarray_insert__index] = item; \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_insert2_in(arr, index, items_field_1, item_1, items_field_2, item_2) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve_in((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field_1[dynarray_insert__i] = (arr)items_field_1[dynarray_insert__i - 1]; \
+            (arr)items_field_2[dynarray_insert__i] = (arr)items_field_2[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field_1[dynarray_insert__index] = item_1; \
+        (arr)items_field_2[dynarray_insert__index] = item_2; \
+        (arr).count++; \
+    } while(0)
+
+#define dynarray_insert3_in(arr, index, items_field_1, item_1, items_field_2, item_2, items_field_4, item_3) \
+    do { \
+        usize dynarray_insert__index = MIN(index, (arr).count); \
+        dynarray_reserve_in((arr), items_field, 1); \
+        for (usize dynarray_insert__i = (arr).count; dynarray_insert__i > dynarray_insert__index; dynarray_insert__i--) { \
+            (arr)items_field_1[dynarray_insert__i] = (arr)items_field_1[dynarray_insert__i - 1]; \
+            (arr)items_field_2[dynarray_insert__i] = (arr)items_field_2[dynarray_insert__i - 1]; \
+            (arr)items_field_3[dynarray_insert__i] = (arr)items_field_3[dynarray_insert__i - 1]; \
+        } \
+        (arr)items_field_1[dynarray_insert__index] = item_1; \
+        (arr)items_field_2[dynarray_insert__index] = item_2; \
+        (arr)items_field_3[dynarray_insert__index] = item_3; \
+        (arr).count++; \
+    } while(0)
+
+// swap_remove:
+// - .count
+// - .items_field
+
+#define dynarray_swap_remove(arr, index, items_field) \
+    do { \
+        (arr)items_field[index] = (arr)items_field[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
+#define dynarray_swap_remove2(arr, index, items_field_1, items_field_2) \
+    do { \
+        (arr)items_field_1[index] = (arr)items_field_1[(arr).count - 1]; \
+        (arr)items_field_2[index] = (arr)items_field_2[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
+#define dynarray_swap_remove3(arr, index, items_field_1, items_field_2, items_field_3) \
+    do { \
+        (arr)items_field_1[index] = (arr)items_field_1[(arr).count - 1]; \
+        (arr)items_field_2[index] = (arr)items_field_2[(arr).count - 1]; \
+        (arr)items_field_3[index] = (arr)items_field_3[(arr).count - 1]; \
+        (arr).count--; \
+    } while(0)
+
+// clone:
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_clone(dst_arr, src_arr, items_field) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field = (src_arr)items_field; \
+        (dst_arr)items_field = std_malloc(sizeof((src_arr)items_field[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field, (src_arr)items_field, sizeof((src_arr)items_field[0]) * (src_arr).count); \
+    } while(0)
+
+#define dynarray_clone2(dst_arr, src_arr, items_field_1, items_field_2) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field_1 = (src_arr)items_field_1; \
+        (dst_arr)items_field_1 = std_malloc(sizeof((src_arr)items_field_1[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field_1, (src_arr)items_field_1, sizeof((src_arr)items_field_1[0]) * (src_arr).count); \
+        \
+        (dst_arr)items_field_2 = (src_arr)items_field_2; \
+        (dst_arr)items_field_2 = std_malloc(sizeof((src_arr)items_field_2[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field_2, (src_arr)items_field_2, sizeof((src_arr)items_field_2[0]) * (src_arr).count); \
+    } while(0)
+
+#define dynarray_clone3(dst_arr, src_arr, items_field_1, items_field_2, items_field_3) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field_1 = (src_arr)items_field_1; \
+        (dst_arr)items_field_1 = std_malloc(sizeof((src_arr)items_field_1[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field_1, (src_arr)items_field_1, sizeof((src_arr)items_field_1[0]) * (src_arr).count); \
+        \
+        (dst_arr)items_field_2 = (src_arr)items_field_2; \
+        (dst_arr)items_field_2 = std_malloc(sizeof((src_arr)items_field_2[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field_2, (src_arr)items_field_2, sizeof((src_arr)items_field_2[0]) * (src_arr).count); \
+        \
+        (dst_arr)items_field_3 = (src_arr)items_field_3; \
+        (dst_arr)items_field_3 = std_malloc(sizeof((src_arr)items_field_3[0]) * (src_arr).count); \
+        std_memcpy((dst_arr)items_field_3, (src_arr)items_field_3, sizeof((src_arr)items_field_3[0]) * (src_arr).count); \
+    } while(0)
+
+
+// clone_in:
+// - dst_arr.allocator
+// - .count
+// - .capacity
+// - .items_field
+
+#define dynarray_clone_in(dst_arr, src_arr, items_field) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field = (src_arr)items_field; \
+        (dst_arr)items_field = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field, (src_arr)items_field, (sizeof((src_arr)items_field[0]) * (src_arr).count)); \
+    } while(0)
+
+#define dynarray_clone2_in(dst_arr, src_arr, items_field_1, items_field_2) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field_1 = (src_arr)items_field_1; \
+        (dst_arr)items_field_1 = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field_1[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field_1, (src_arr)items_field_1, (sizeof((src_arr)items_field_1[0]) * (src_arr).count)); \
+        \
+        (dst_arr)items_field_2 = (src_arr)items_field_2; \
+        (dst_arr)items_field_2 = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field_2[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field_2, (src_arr)items_field_2, (sizeof((src_arr)items_field_2[0]) * (src_arr).count)); \
+    } while(0)
+
+#define dynarray_clone3_in(dst_arr, src_arr, items_field_1, items_field_2, items_field_3) \
+    do { \
+        (dst_arr).count = (src_arr).count; \
+        (dst_arr).capacity = (src_arr).count; \
+        \
+        (dst_arr)items_field_1 = (src_arr)items_field_1; \
+        (dst_arr)items_field_1 = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field_1[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field_1, (src_arr)items_field_1, (sizeof((src_arr)items_field_1[0]) * (src_arr).count)); \
+        \
+        (dst_arr)items_field_2 = (src_arr)items_field_2; \
+        (dst_arr)items_field_2 = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field_2[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field_2, (src_arr)items_field_2, (sizeof((src_arr)items_field_2[0]) * (src_arr).count)); \
+        \
+        (dst_arr)items_field_3 = (src_arr)items_field_3; \
+        (dst_arr)items_field_3 = just_alloc_array((dst_arr).allocator, /*Type*/((dst_arr)items_field_3[0]), /*count*/((src_arr).count)); \
+        std_memcpy((dst_arr)items_field_3, (src_arr)items_field_3, (sizeof((src_arr)items_field_3[0]) * (src_arr).count)); \
+    } while(0)
+
+// -----
+
+#endif // __HEADER_MEMORY_DYNARRAY
+
+#define __HEADER_MEMORY_ALLOCATOR
+#ifdef __HEADER_MEMORY_ALLOCATOR
+
+typedef void* (*AllocFn)(void* allocator_data, MemoryLayout layout);
+typedef void* (*ReallocFn)(void* allocator_data, void* ptr, MemoryLayout layout);
+typedef void (*FreeFn)(void* allocator_data, void* ptr);
+
+typedef struct {
+    AllocFn alloc_fn;
+    ReallocFn realloc_fn;
+    FreeFn free_fn;
+} AllocatorFns;
+
+typedef struct {
+    usize count;
+    usize capacity;
+    AllocatorFns* rows;
+} AllocatorVTable;
+
+void allocator_vtable_reserve(usize count);
+
+// NOTE: requires strict all-reserves => all-adds order
+AllocatorFns* allocator_vtable_add_entry(AllocatorFns allocator_fns_impl);
+
+typedef struct {
+    void* data;
+    AllocatorFns* vtable_ptr;
+} Allocator;
+
+#define NO_ALLOCATOR (Allocator){0}
+#define ALLOCATOR_IS_NULL(allocator) ((allocator).vtable_ptr == NULL)
+
+void set_default_allocator(Allocator allocator);
+
+#define just_alloc_single(allocator, Type)          just_alloc_aligned((allocator), layoutof(Type))
+#define just_alloc_array(allocator, Type, count)    just_alloc_aligned((allocator), array_layoutof(Type, (count)))
+#define just_realloc_single(allocator, Type, ptr)          just_realloc_aligned((allocator), (ptr), layoutof(Type))
+#define just_realloc_array(allocator, Type, ptr, count)    just_realloc_aligned((allocator), (ptr), array_layoutof(Type, (count)))
+
+void* just_alloc(Allocator allocator, usize size);
+void* just_alloc_aligned(Allocator allocator, MemoryLayout layout);
+void* just_realloc(Allocator allocator, void* ptr, usize size);
+void* just_realloc_aligned(Allocator allocator, void* ptr, MemoryLayout layout);
+void* just_free(Allocator allocator, void* ptr);
+
+// Allocator Impls
+
+#define JUST_ENGINE_ALLOCATOR_IMPL_COUNT 3
+void just_engine__allocator_vtable_add_entries();
+
+Allocator std_heap_allocator();                     // C malloc-free
+Allocator just_bump_allocator(usize size);          // BumpAllocator
+Allocator just_arena_allocator(usize region_size);  // ArenaAllocator
+
+Allocator just_as_bump_allocator(BumpAllocator* bump_allocator);
+Allocator just_as_arena_allocator(ArenaAllocator* arena_allocator);
+
+#endif // __HEADER_MEMORY_ALLOCATOR
 
 #define __HEADER_MEMORY_JUSTSTRING
 #ifdef __HEADER_MEMORY_JUSTSTRING
@@ -1154,6 +1514,8 @@ bool char_is_whitespace(char ch);
 usize cstr_length(const char* cstr);
 char* cstr_nclone(const char* cstr, usize count);
 char* cstr_clone(const char* cstr);
+char* cstr_nclone_in(Allocator allocator, const char* cstr, usize count);
+char* cstr_clone_in(Allocator allocator, const char* cstr);
 bool cstr_equals(const char* cstr1, const char* cstr2);
 
 #define cstr_alloc_format(cstr_out, format, ...) \
@@ -1176,6 +1538,7 @@ bool cstr_equals(const char* cstr1, const char* cstr2);
     } while (0)
 
 typedef struct {
+    Allocator allocator;
     usize count;
     usize capacity;
     union {
@@ -1216,9 +1579,19 @@ String string_with_capacity(usize capacity);
 String string_from_cstr(const char* cstr);
 String string_from_view(StringView string_view);
 String clone_string(String string);
+
+String string_new_in(Allocator allocator);
+String string_with_capacity_in(Allocator allocator, usize capacity);
+String string_from_cstr_in(Allocator allocator, const char* cstr);
+String string_from_view_in(Allocator allocator, StringView string_view);
+String clone_string_in(Allocator allocator, String string);
+
+void string_reserve(String* string, usize reserve_count);
+
 void clear_string(String* string);
 void free_string(String string);
 
+StringView cstrn_as_view(char* cstr, usize count);
 StringView cstr_as_view(char* cstr);
 
 bool ss_equals(String s1, String s2);
@@ -1249,7 +1622,7 @@ String new_string_merged(String s1, String s2);
 #define string_append_format(string, format, ...) \
     do { \
         int32 string_append_format__count = std_snprintf(NULL, 0, format, __VA_ARGS__); \
-        dynarray_reserve_custom((string), .str, string_append_format__count + 1); \
+        string_reserve(&(string), string_append_format__count + 1); \
         std_snprintf((string).str + (string).count, string_append_format__count + 1, format, __VA_ARGS__); \
         (string).count += string_append_format__count; \
     } while (0)
@@ -1257,10 +1630,10 @@ String new_string_merged(String s1, String s2);
 #define string_hinted_append_format(string, count_hint, format, ...) \
     do { \
         usize assert__count_hint = count_hint; \
-        dynarray_reserve_custom((string), .str, count_hint + 1); \
+        string_reserve(&(string), count_hint + 1); \
         int32 string_hinted_append_format__count = std_snprintf((string).str + (string).count, count_hint + 1, format, __VA_ARGS__); \
         if (string_hinted_append_format__count > count_hint) { \
-            dynarray_reserve_custom((string), .str, string_hinted_append_format__count + 1); \
+            string_reserve(&(string), string_hinted_append_format__count + 1); \
             std_snprintf((string).str + (string).count, string_hinted_append_format__count + 1, format, __VA_ARGS__); \
         } \
         (string).count += string_hinted_append_format__count; \
@@ -1371,22 +1744,32 @@ bool peek_token(StringTokensIter* tokens_iter, StringTokenOut* token_out);
 typedef struct StringBuilderNode {
     struct StringBuilderNode* next;
     bool auto_free;
+    Allocator allocator;
     usize count;
     char* str;
 } StringBuilderNode;
 
 typedef struct {
+    Allocator allocator;
     usize total_count;
     StringBuilderNode* head;
     StringBuilderNode* tail;
 } StringBuilder;
 
 StringBuilder string_builder_new();
+StringBuilder string_builder_new_in(Allocator allocator);
 String build_string(StringBuilder* builder);
+
 void string_builder_nappend_cstr(StringBuilder* builder, char* cstr, usize count);
 void string_builder_nappend_cstr_owned(StringBuilder* builder, char* cstr, usize count);
+void string_builder_nappend_cstr_in(StringBuilder* builder, Allocator allocator, char* cstr, usize count);
+void string_builder_nappend_cstr_in_owned(StringBuilder* builder, Allocator allocator, char* cstr, usize count);
+
 void string_builder_append_cstr(StringBuilder* builder, char* cstr);
 void string_builder_append_cstr_owned(StringBuilder* builder, char* cstr);
+void string_builder_append_cstr_in(StringBuilder* builder, Allocator allocator, char* cstr);
+void string_builder_append_cstr_in_owned(StringBuilder* builder, Allocator allocator, char* cstr);
+
 void string_builder_append_string(StringBuilder* builder, String string);
 void string_builder_append_string_owned(StringBuilder* builder, String string);
 
@@ -1394,22 +1777,36 @@ void string_builder_append_string_owned(StringBuilder* builder, String string);
     do { \
         String string_builder_append_format__string = string_new(); \
         string_append_format(string_builder_append_format__string, format, __VA_ARGS__); \
-        string_builder_append_string_owned(string_builder_ptr, string_builder_append_format__string); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
     } while(0)
 
 #define string_builder_hinted_append_format(string_builder_ptr, count_hint, format, ...) \
     do { \
         String string_builder_append_format__string = string_new(); \
-        string_hinted_append_format(string_builder_append_format__string, count_hint, format, __VA_ARGS__); \
-        string_builder_append_string_owned(string_builder_ptr, string_builder_append_format__string); \
+        string_hinted_append_format(string_builder_append_format__string, (count_hint), format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
+    } while(0)
+
+#define string_builder_append_format_in(string_builder_ptr, format, ...) \
+    do { \
+        String string_builder_append_format__string = string_new_in((string_builder_ptr)->allocator); \
+        string_append_format(string_builder_append_format__string, format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
+    } while(0)
+
+#define string_builder_hinted_append_format_in(string_builder_ptr, count_hint, format, ...) \
+    do { \
+        String string_builder_append_format__string = string_new_in((string_builder_ptr)->allocator); \
+        string_hinted_append_format(string_builder_append_format__string, (count_hint), format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
     } while(0)
 
 // -
 
 #endif // __HEADER_MEMORY_JUSTSTRING
 
-#define __HEADER_MEMORY_JUSTQUEUE
-#ifdef __HEADER_MEMORY_JUSTQUEUE
+#define __HEADER_MEMORY_JUSTCONTAINER
+#ifdef __HEADER_MEMORY_JUSTCONTAINER
 
 #define Queue(Type) Queue_##Type
 #define queue_new(Type) Queue_##Type##__queue_new
@@ -1438,8 +1835,25 @@ bool Queue_usize__queue_has_next(Queue_usize* q);
 bool Queue_usize__queue_push(Queue_usize* q, usize item);
 bool Queue_usize__queue_pop(Queue_usize* q, usize* set_item);
 
+typedef struct {
+    usize count; // top
+    usize capacity;
+    usize* items;
+} Stack_usize;
 
-#endif // __HEADER_MEMORY_JUSTQUEUE
+Stack_usize Stack_usize__stack_new(usize capacity);
+void Stack_usize__stack_free(Stack_usize* s);
+void Stack_usize__stack_reset(Stack_usize* s);
+bool Stack_usize__stack_is_full(Stack_usize* s);
+bool Stack_usize__stack_is_empty(Stack_usize* s);
+bool Stack_usize__stack_has_next(Stack_usize* s);
+bool Stack_usize__stack_push(Stack_usize* s, usize item);
+bool Stack_usize__stack_pop(Stack_usize* s, usize* set_item);
+
+// TODO: InfiniteQueue
+// TODO: InfiniteStack
+
+#endif // __HEADER_MEMORY_JUSTCONTAINER
 
 #define __HEADER_THREAD_TASK
 #ifdef __HEADER_THREAD_TASK

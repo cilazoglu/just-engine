@@ -7,6 +7,7 @@
 #include "base.h"
 #include "logging.h"
 #include "memory/memory.h"
+#include "memory/dynarray.h"
 
 #include "sprite.h"
 
@@ -168,7 +169,7 @@ void SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites(
     SpriteStore* sprite_store,
     PreparedRenderSprites* prepared_render_sprites
 ) {
-    dynarray_reserve_custom_2(*prepared_render_sprites, .camera_render_order, .render_sprites, sprite_camera_store->count);
+    dynarray_reserve2(*prepared_render_sprites, .camera_render_order, .render_sprites, sprite_camera_store->count);
     prepared_render_sprites->count = sprite_camera_store->count;
 
     for (usize camera_i = 0; camera_i < sprite_camera_store->count; camera_i++) {
@@ -200,7 +201,7 @@ void SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites(
                         || (sprite->use_layer_system && check_layer_overlap(sprite->layers, sprite_camera->layers))
                     ) {
                         RenderSprite render_sprite = extract_render_sprite(sprite_store, sprite_entity);
-                        dynarray_push_back_custom(*render_sprites, .sprites, render_sprite);
+                        dynarray_push_back(*render_sprites, .sprites, render_sprite);
                     }
                 }
             }

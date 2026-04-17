@@ -11,6 +11,8 @@ bool char_is_whitespace(char ch);
 usize cstr_length(const char* cstr);
 char* cstr_nclone(const char* cstr, usize count);
 char* cstr_clone(const char* cstr);
+char* cstr_nclone_in(Allocator allocator, const char* cstr, usize count);
+char* cstr_clone_in(Allocator allocator, const char* cstr);
 bool cstr_equals(const char* cstr1, const char* cstr2);
 
 #define cstr_alloc_format(cstr_out, format, ...) \
@@ -81,9 +83,12 @@ String string_from_cstr_in(Allocator allocator, const char* cstr);
 String string_from_view_in(Allocator allocator, StringView string_view);
 String clone_string_in(Allocator allocator, String string);
 
+void string_reserve(String* string, usize reserve_count);
+
 void clear_string(String* string);
 void free_string(String string);
 
+StringView cstrn_as_view(char* cstr, usize count);
 StringView cstr_as_view(char* cstr);
 
 bool ss_equals(String s1, String s2);
@@ -114,7 +119,7 @@ String new_string_merged(String s1, String s2);
 #define string_append_format(string, format, ...) \
     do { \
         int32 string_append_format__count = std_snprintf(NULL, 0, format, __VA_ARGS__); \
-        dynarray_reserve_custom((string), .str, string_append_format__count + 1); \
+        string_reserve(&(string), string_append_format__count + 1); \
         std_snprintf((string).str + (string).count, string_append_format__count + 1, format, __VA_ARGS__); \
         (string).count += string_append_format__count; \
     } while (0)
@@ -122,10 +127,10 @@ String new_string_merged(String s1, String s2);
 #define string_hinted_append_format(string, count_hint, format, ...) \
     do { \
         usize assert__count_hint = count_hint; \
-        dynarray_reserve_custom((string), .str, count_hint + 1); \
+        string_reserve(&(string), count_hint + 1); \
         int32 string_hinted_append_format__count = std_snprintf((string).str + (string).count, count_hint + 1, format, __VA_ARGS__); \
         if (string_hinted_append_format__count > count_hint) { \
-            dynarray_reserve_custom((string), .str, string_hinted_append_format__count + 1); \
+            string_reserve(&(string), string_hinted_append_format__count + 1); \
             std_snprintf((string).str + (string).count, string_hinted_append_format__count + 1, format, __VA_ARGS__); \
         } \
         (string).count += string_hinted_append_format__count; \
@@ -236,22 +241,32 @@ bool peek_token(StringTokensIter* tokens_iter, StringTokenOut* token_out);
 typedef struct StringBuilderNode {
     struct StringBuilderNode* next;
     bool auto_free;
+    Allocator allocator;
     usize count;
     char* str;
 } StringBuilderNode;
 
 typedef struct {
+    Allocator allocator;
     usize total_count;
     StringBuilderNode* head;
     StringBuilderNode* tail;
 } StringBuilder;
 
 StringBuilder string_builder_new();
+StringBuilder string_builder_new_in(Allocator allocator);
 String build_string(StringBuilder* builder);
+
 void string_builder_nappend_cstr(StringBuilder* builder, char* cstr, usize count);
 void string_builder_nappend_cstr_owned(StringBuilder* builder, char* cstr, usize count);
+void string_builder_nappend_cstr_in(StringBuilder* builder, Allocator allocator, char* cstr, usize count);
+void string_builder_nappend_cstr_in_owned(StringBuilder* builder, Allocator allocator, char* cstr, usize count);
+
 void string_builder_append_cstr(StringBuilder* builder, char* cstr);
 void string_builder_append_cstr_owned(StringBuilder* builder, char* cstr);
+void string_builder_append_cstr_in(StringBuilder* builder, Allocator allocator, char* cstr);
+void string_builder_append_cstr_in_owned(StringBuilder* builder, Allocator allocator, char* cstr);
+
 void string_builder_append_string(StringBuilder* builder, String string);
 void string_builder_append_string_owned(StringBuilder* builder, String string);
 
@@ -259,14 +274,28 @@ void string_builder_append_string_owned(StringBuilder* builder, String string);
     do { \
         String string_builder_append_format__string = string_new(); \
         string_append_format(string_builder_append_format__string, format, __VA_ARGS__); \
-        string_builder_append_string_owned(string_builder_ptr, string_builder_append_format__string); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
     } while(0)
 
 #define string_builder_hinted_append_format(string_builder_ptr, count_hint, format, ...) \
     do { \
         String string_builder_append_format__string = string_new(); \
-        string_hinted_append_format(string_builder_append_format__string, count_hint, format, __VA_ARGS__); \
-        string_builder_append_string_owned(string_builder_ptr, string_builder_append_format__string); \
+        string_hinted_append_format(string_builder_append_format__string, (count_hint), format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
+    } while(0)
+
+#define string_builder_append_format_in(string_builder_ptr, format, ...) \
+    do { \
+        String string_builder_append_format__string = string_new_in((string_builder_ptr)->allocator); \
+        string_append_format(string_builder_append_format__string, format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
+    } while(0)
+
+#define string_builder_hinted_append_format_in(string_builder_ptr, count_hint, format, ...) \
+    do { \
+        String string_builder_append_format__string = string_new_in((string_builder_ptr)->allocator); \
+        string_hinted_append_format(string_builder_append_format__string, (count_hint), format, __VA_ARGS__); \
+        string_builder_append_string_owned((string_builder_ptr), string_builder_append_format__string); \
     } while(0)
 
 // -
