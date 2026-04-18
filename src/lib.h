@@ -42,6 +42,10 @@ typedef struct {
     // --------
     bool use_http_client_subsystem;
     // --------
+    struct {
+        usize user_allocator_impl_count;
+    } vtable;
+    // --------
 } JustEngineInit;
 
 typedef struct {

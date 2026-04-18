@@ -10,6 +10,7 @@
 #include "base.h"
 #include "logging.h"
 #include "memory/memory.h"
+#include "memory/allocator.h"
 #include "assets/asset.h"
 #include "events/events.h"
 #include "render2d/sprite.h"
@@ -58,6 +59,9 @@ void just_engine_init(JustEngineInit init) {
         .RES_texture_assets_events = &JUST_GLOBAL.texture_asset_events,
         .asset_folder = init.dir.asset_dir,
     };
+
+    allocator_vtable_reserve(JUST_ENGINE_ALLOCATOR_IMPL_COUNT + init.vtable.user_allocator_impl_count);
+    just_engine__allocator_vtable_add_entries();
 }
 
 void just_engine_deinit(JustEngineDeinit deinit) {
