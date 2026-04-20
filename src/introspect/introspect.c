@@ -215,15 +215,15 @@ void struct__pretty_print(void* var, FieldInfo* fields, uint32 field_count, uint
     printf("}");
 }
 void struct_ptr__print(void** ptr, FieldInfo* fields, uint32 field_count) {
-    ptr__print(ptr);
-    if (ptr != NULL) {
+    ptr__print(*ptr);
+    if (*ptr != NULL) {
         printf(" ");
         struct__print(*ptr, fields, field_count);
     }
 }
 void struct_ptr__pretty_print(void** ptr, FieldInfo* fields, uint32 field_count, uint32 indent, IndentToken indent_token) {
-    ptr__print(ptr);
-    if (ptr != NULL) {
+    ptr__print(*ptr);
+    if (*ptr != NULL) {
         printf(" ");
         struct__pretty_print(*ptr, fields, field_count, indent, indent_token);
     }
@@ -293,15 +293,15 @@ void union__pretty_print(void* struct_var, void* var, FieldInfo self, uint32 var
     introspect_field_pretty_print(variant, struct_var, indent, indent_token);
 }
 void union_ptr__print(void* struct_var, void** ptr, FieldInfo self, uint32 variant_index, FieldInfo* variants, uint32 variant_count) {
-    ptr__print(ptr);
-    if (ptr != NULL) {
+    ptr__print(*ptr);
+    if (*ptr != NULL) {
         printf(" ");
         union__print(struct_var, *ptr, self, variant_index, variants, variant_count);
     }
 }
 void union_ptr__pretty_print(void* struct_var, void** ptr, FieldInfo self, uint32 variant_index, FieldInfo* variants, uint32 variant_count, uint32 indent, IndentToken indent_token) {
-    ptr__print(ptr);
-    if (ptr != NULL) {
+    ptr__print(*ptr);
+    if (*ptr != NULL) {
         printf(" ");
         union__pretty_print(struct_var, *ptr, self, variant_index, variants, variant_count, indent, indent_token);
     }

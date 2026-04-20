@@ -293,15 +293,15 @@ void union__pretty_sbappend(StringBuilder* sb, void* struct_var, void* var, Fiel
     introspect_field_pretty_sbappend(sb, variant, struct_var, indent, indent_token);
 }
 void union_ptr__sbappend(StringBuilder* sb, void* struct_var, void** ptr, FieldInfo self, uint32 variant_index, FieldInfo* variants, uint32 variant_count) {
-    ptr__sbappend(sb, ptr);
-    if (ptr != NULL) {
+    ptr__sbappend(sb, *ptr);
+    if (*ptr != NULL) {
         string_builder_append_cstr(sb, " ");
         union__sbappend(sb, struct_var, *ptr, self, variant_index, variants, variant_count);
     }
 }
 void union_ptr__pretty_sbappend(StringBuilder* sb, void* struct_var, void** ptr, FieldInfo self, uint32 variant_index, FieldInfo* variants, uint32 variant_count, uint32 indent, IndentToken indent_token) {
-    ptr__sbappend(sb, ptr);
-    if (ptr != NULL) {
+    ptr__sbappend(sb, *ptr);
+    if (*ptr != NULL) {
         string_builder_append_cstr(sb, " ");
         union__pretty_sbappend(sb, struct_var, *ptr, self, variant_index, variants, variant_count, indent, indent_token);
     }
