@@ -10,11 +10,15 @@
  * - URectSize
  * - StepTimer
  * - SpriteSheetAnimationState
+ * - AABBCollider
+ * - AABBColliderSet
 */
 
 static FieldInfo URectSize__fields[2];
 static FieldInfo StepTimer__fields[4];
 static FieldInfo SpriteSheetAnimationState__fields[8];
+static FieldInfo AABBCollider__fields[4];
+static FieldInfo AABBColliderSet__fields[4];
 
 static FieldInfo URectSize__union_0__variants[] = {
 	{
@@ -92,10 +96,46 @@ static FieldInfo SpriteSheetAnimationState__fields[] = {
 	},
 };
 
+static FieldInfo AABBCollider__fields[] = {
+	{
+		.type = TYPE_float32, .name = "x_left", .ptr = &(((AABBCollider*)(0))->x_left),
+	},
+	{
+		.type = TYPE_float32, .name = "x_right", .ptr = &(((AABBCollider*)(0))->x_right),
+	},
+	{
+		.type = TYPE_float32, .name = "y_top", .ptr = &(((AABBCollider*)(0))->y_top),
+	},
+	{
+		.type = TYPE_float32, .name = "y_bottom", .ptr = &(((AABBCollider*)(0))->y_bottom),
+	},
+};
+
+static FieldInfo AABBColliderSet__fields[] = {
+	{
+		.type = TYPE_usize, .name = "count", .ptr = &(((AABBColliderSet*)(0))->count),
+	},
+	{
+		.type = TYPE_usize, .name = "capacity", .ptr = &(((AABBColliderSet*)(0))->capacity),
+	},
+	{
+		.type = TYPE_struct, .name = "bounding_box", .ptr = &(((AABBColliderSet*)(0))->bounding_box),
+		.struct_size = sizeof(AABBCollider), .field_count = ARRAY_LENGTH(AABBCollider__fields), .fields = AABBCollider__fields,
+	},
+	{
+		.type = TYPE_struct, .name = "colliders", .ptr = &(((AABBColliderSet*)(0))->colliders),
+		.is_ptr = true, .ptr_depth = 1,
+		.is_dynarray = true, .count_ptr = &(((AABBColliderSet*)(0))->count),
+		.struct_size = sizeof(AABBCollider), .field_count = ARRAY_LENGTH(AABBCollider__fields), .fields = AABBCollider__fields,
+	},
+};
+
 
 __IMPL_____generate_print_functions(URectSize);
 __IMPL_____generate_print_functions(StepTimer);
 __IMPL_____generate_print_functions(SpriteSheetAnimationState);
+__IMPL_____generate_print_functions(AABBCollider);
+__IMPL_____generate_print_functions(AABBColliderSet);
 
 
 #endif

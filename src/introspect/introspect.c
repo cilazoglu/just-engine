@@ -479,7 +479,6 @@ void introspect_field_print(FieldInfo field, void* var) {
         field_print(int64, field);
         break;
     case TYPE_usize:
-        // JUST_DEV_MARK();
         void* field_ptr = (void*)(((usize)var) + ((usize)field.ptr));
         usize* p = field_ptr;
         field_print(usize, field);

@@ -215,15 +215,15 @@ void struct__pretty_sbappend(StringBuilder* sb, void* var, FieldInfo* fields, ui
     string_builder_append_cstr(sb, "}");
 }
 void struct_ptr__sbappend(StringBuilder* sb, void** ptr, FieldInfo* fields, uint32 field_count) {
-    ptr__sbappend(sb, ptr);
-    if (ptr != NULL) {
+    ptr__sbappend(sb, *ptr);
+    if (*ptr != NULL) {
         string_builder_append_cstr(sb, " ");
         struct__sbappend(sb, *ptr, fields, field_count);
     }
 }
 void struct_ptr__pretty_sbappend(StringBuilder* sb, void** ptr, FieldInfo* fields, uint32 field_count, uint32 indent, IndentToken indent_token) {
-    ptr__sbappend(sb, ptr);
-    if (ptr != NULL) {
+    ptr__sbappend(sb, *ptr);
+    if (*ptr != NULL) {
         string_builder_append_cstr(sb, " ");
         struct__pretty_sbappend(sb, *ptr, fields, field_count, indent, indent_token);
     }
@@ -479,7 +479,6 @@ void introspect_field_sbappend(StringBuilder* sb, FieldInfo field, void* var) {
         field_sbappend(int64, sb, field);
         break;
     case TYPE_usize:
-        // JUST_DEV_MARK();
         void* field_ptr = (void*)(((usize)var) + ((usize)field.ptr));
         usize* p = field_ptr;
         field_sbappend(usize, sb, field);

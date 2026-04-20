@@ -3,6 +3,7 @@
 #include "raylib.h"
 
 #include "base.h"
+#include "introspect/introspect.h"
 
 typedef struct {
     Vector2 position;
@@ -19,6 +20,7 @@ typedef struct {
     float32 radius;
 } CircleCollider;
 
+introspect
 typedef struct {
     float32 x_left;
     float32 x_right;
@@ -26,11 +28,12 @@ typedef struct {
     float32 y_bottom;
 } AABBCollider;
 
+introspect
 typedef struct {
-    uint32 count; // collider count
-    uint32 capacity;
+    usize count; // collider count
+    usize capacity;
     AABBCollider bounding_box;
-    AABBCollider* colliders;
+    AABBCollider* colliders mode_dynarray(count);
 } AABBColliderSet;
 
 // TODO: FreeRectangleCollider: arbitrarily rotated rectangle

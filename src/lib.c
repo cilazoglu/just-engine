@@ -39,7 +39,7 @@ void just_engine_init(JustEngineInit init) {
         .delta_time = 0.0,
         .screen_size = init.window.size,
         .clear_color = init.window.clear_color,
-        .frame_storage = make_bump_allocator(),
+        .frame_storage = make_bump_allocator_with_size(init.frame_storage.size),
         .threadpool = thread_pool_create(init.threadpool.nthreads, init.threadpool.task_queue_capacity),
         .file_image_server = LATER_INIT,
         .texture_assets = new_texture_assets(),

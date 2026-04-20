@@ -3348,10 +3348,10 @@ typedef struct {
 } AABBCollider;
 
 typedef struct {
-    uint32 count; // collider count
-    uint32 capacity;
+    usize count; // collider count
+    usize capacity;
     AABBCollider bounding_box;
-    AABBCollider* colliders;
+    AABBCollider* colliders mode_dynarray(count);
 } AABBColliderSet;
 
 // TODO: FreeRectangleCollider: arbitrarily rotated rectangle
@@ -4184,6 +4184,10 @@ typedef struct {
     } execution;
     // --------
     struct {
+        usize size;
+    } frame_storage;
+    // --------
+    struct {
         uint32 nthreads;
         uint32 task_queue_capacity;
     } threadpool;
@@ -4452,6 +4456,13 @@ void introspect_field_pretty_print(FieldInfo field, void* var, uint32 indent, In
 #define just_array_pretty_tostring(Type) Type##_array__pretty_tostring0
 #define just_array_pretty_tostring_with(Type) Type##_array__pretty_tostring_with0
 
+#define just_tostring_in(Type) Type##__tostring_in0
+#define just_pretty_tostring_in(Type) Type##__pretty_tostring_in0
+#define just_pretty_tostring_in_with(Type) Type##__pretty_tostring_in_with0
+#define just_array_tostring_in(Type) Type##_array__tostring_in0
+#define just_array_pretty_tostring_in(Type) Type##_array__pretty_tostring_in0
+#define just_array_pretty_tostring_in_with(Type) Type##_array__pretty_tostring_in_with0
+
 // -----
 
 #define __DECLARE__print_functions__sbappend(TYPE) \
@@ -4605,6 +4616,8 @@ void introspect_field_pretty_sbappend(StringBuilder* sb, FieldInfo field, void* 
         string_builder_append_cstr(sb, "\n"); \
     } \
 \
+\
+\
     static inline String TYPE##__tostring0(char* name, TYPE* var) { \
         StringBuilder sb_var = string_builder_new(); \
         StringBuilder* sb = &sb_var; \
@@ -4648,6 +4661,58 @@ void introspect_field_pretty_sbappend(StringBuilder* sb, FieldInfo field, void* 
     } \
     static inline String TYPE##_array__pretty_tostring_with0(char* name, TYPE* var, usize count, IndentToken indent_token) { \
         StringBuilder sb_var = string_builder_new(); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##_array__pretty_sbappend_with(sb, var, count, 0, indent_token); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+\
+\
+\
+    static inline String TYPE##__tostring_in0(Allocator allocator, char* name, TYPE* var) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##__sbappend(sb, var); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+    static inline String TYPE##__pretty_tostring_in0(Allocator allocator, char* name, TYPE* var) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##__pretty_sbappend(sb, var, 0); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+    static inline String TYPE##__pretty_tostring_in_with0(Allocator allocator, char* name, TYPE* var, IndentToken indent_token) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##__pretty_sbappend_with(sb, var, 0, indent_token); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+\
+    static inline String TYPE##_array__tostring_in0(Allocator allocator, char* name, TYPE* var, usize count) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##_array__sbappend(sb, var, count); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+    static inline String TYPE##_array__pretty_tostring_in0(Allocator allocator, char* name, TYPE* var, usize count) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
+        StringBuilder* sb = &sb_var; \
+        if (name) string_builder_append_format(sb, "%s: ", name); \
+        TYPE##_array__pretty_sbappend(sb, var, count, 0); \
+        string_builder_append_cstr(sb, "\n"); \
+        return build_string(sb); \
+    } \
+    static inline String TYPE##_array__pretty_tostring_in_with0(Allocator allocator, char* name, TYPE* var, usize count, IndentToken indent_token) { \
+        StringBuilder sb_var = string_builder_new_in(allocator); \
         StringBuilder* sb = &sb_var; \
         if (name) string_builder_append_format(sb, "%s: ", name); \
         TYPE##_array__pretty_sbappend_with(sb, var, count, 0, indent_token); \

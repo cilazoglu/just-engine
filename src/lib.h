@@ -23,6 +23,10 @@ typedef struct {
     } execution;
     // --------
     struct {
+        usize size;
+    } frame_storage;
+    // --------
+    struct {
         uint32 nthreads;
         uint32 task_queue_capacity;
     } threadpool;

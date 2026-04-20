@@ -49,6 +49,7 @@
  * - handle type aliasing with `alias()`
  * - function pointer `function_ptr()`
  * - IMPORTANT: find a way to solve "include order" and "type not defined in introspect file" issues
+ * - IMPORTANT: support dynarray count/capacity other than usize
  */
 
 typedef enum {
