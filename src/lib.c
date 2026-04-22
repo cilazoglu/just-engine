@@ -35,10 +35,12 @@ void just_engine_init(JustEngineInit init) {
     SetTextureFilter(screen_target.texture, TEXTURE_FILTER_POINT);
 
     JUST_GLOBAL = (JustEngineGlobalResources) {
-        .should_close = false,
-        .delta_time = 0.0,
-        .screen_size = init.window.size,
-        .clear_color = init.window.clear_color,
+        .frame_constants = {
+            .delta_time = 0.0,
+            .window_clear_color = init.window.clear_color,
+            .window_size = init.window.size,
+            .render_target_screen_ratio = LATER_INIT,
+        },
         .frame_storage = make_bump_allocator_with_size(init.frame_storage.size),
         .threadpool = thread_pool_create(init.threadpool.nthreads, init.threadpool.task_queue_capacity),
         .file_image_server = LATER_INIT,
@@ -51,6 +53,11 @@ void just_engine_init(JustEngineInit init) {
         .camera_store = STRUCT_ZERO_INIT,
         .sprite_store = STRUCT_ZERO_INIT,
         .ui_store = ui_element_store_new(),
+    };
+
+    JUST_GLOBAL.frame_constants.render_target_screen_ratio = (Vector2) {
+        .x = (float32) JUST_GLOBAL.frame_constants.window_size.width / JUST_GLOBAL.screen_render_target.texture_size.width,
+        .y = (float32) JUST_GLOBAL.frame_constants.window_size.height / JUST_GLOBAL.screen_render_target.texture_size.height,
     };
 
     JUST_GLOBAL.file_image_server = (FileImageServer) {
@@ -112,7 +119,7 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
 
     while (true) {
         just_app_run_once(&current_chapter->app);
-        if (JUST_GLOBAL.should_close) {
+        if (JUST_GLOBAL.execution.should_close) {
             break;
         }
         if (current_chapter->end) {
@@ -145,9 +152,9 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
 // ---------------------------
 
 void SYSTEM_FRAME_BEGIN_set_delta_time(
-    float32* RES_delta_time
+    JustEngineFrameConstants* RES_frame_constants
 ) {
-    *RES_delta_time = GetFrameTime();
+    RES_frame_constants->delta_time = GetFrameTime();
 }
 
 void SYSTEM_POST_UPDATE_camera_visibility(
@@ -217,7 +224,7 @@ void SYSTEM_FRAME_END_reset_temporary_storage(
 
 void JUST_SYSTEM_FRAME_BEGIN_set_delta_time() {
     SYSTEM_FRAME_BEGIN_set_delta_time(
-        &JUST_GLOBAL.delta_time
+        &JUST_GLOBAL.frame_constants
     );
 }
 
@@ -245,7 +252,7 @@ void JUST_SYSTEM_INPUT_handle_input_for_ui_store() {
 void JUST_SYSTEM_UPDATE_update_ui_elements() {
     SYSTEM_UPDATE_update_ui_elements(
         &JUST_GLOBAL.ui_store,
-        JUST_GLOBAL.delta_time
+        JUST_GLOBAL.frame_constants.delta_time
     );
 }
 
@@ -305,9 +312,9 @@ void JUST_SYSTEM_RENDER_end_drawing() {
 
 void JUST_SYSTEM_RENDER_SCREEN_begin_drawing() {
     BeginDrawing();
-        ClearBackground(JUST_GLOBAL.clear_color);
+        ClearBackground(JUST_GLOBAL.frame_constants.window_clear_color);
         Texture texture = JUST_GLOBAL.screen_render_target.texture.texture;
-        URectSize screen_size = JUST_GLOBAL.screen_size;
+        URectSize screen_size = JUST_GLOBAL.frame_constants.window_size;
         DrawTexturePro(
             texture,
             (Rectangle) { 0, 0, (float)texture.width, (float)-texture.height },

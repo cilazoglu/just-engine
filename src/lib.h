@@ -61,13 +61,20 @@ typedef struct {
 } JustEngineDeinit;
 
 typedef struct {
-    // --------
-    bool should_close;
-    // --------
     float32 delta_time;
+    Color window_clear_color;
+    URectSize window_size;
+    // calculated, should match
+    Vector2 render_target_screen_ratio; // screen / render_target
+} JustEngineFrameConstants;
+
+typedef struct {
     // --------
-    URectSize screen_size;
-    Color clear_color;
+    JustEngineFrameConstants frame_constants;
+    // --------
+    struct {
+        bool should_close;
+    } execution;
     // --------
     BumpAllocator frame_storage;
     ThreadPool* threadpool;
@@ -98,6 +105,8 @@ extern JustEngineGlobalRenderResources JUST_RENDER_GLOBAL;
 void just_engine_init(JustEngineInit init);
 void just_engine_deinit(JustEngineDeinit deinit);
 void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeinit* deinit);
+
+#define just_engine_mark_exit() (JUST_GLOBAL.execution.should_close = true)
 
 // ---------------------------
 
@@ -133,7 +142,7 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
 // ---------------------------
 
 void SYSTEM_FRAME_BEGIN_set_delta_time(
-    float32* RES_delta_time
+    JustEngineFrameConstants* RES_frame_constants
 );
 
 void SYSTEM_POST_UPDATE_camera_visibility(
