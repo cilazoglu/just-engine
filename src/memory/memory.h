@@ -23,8 +23,8 @@ typedef struct {
     usize alignment;
 } MemoryLayout;
 
-#define layoutof(TYPE) ((MemoryLayout) { .size = sizeof(TYPE), .alignment = _Alignof(TYPE)})
-#define array_layoutof(TYPE, count) ((MemoryLayout) { .size = count * sizeof(TYPE), .alignment = _Alignof(TYPE)})
+#define layoutof(TYPE) ((MemoryLayout) { .size = sizeof(TYPE), .alignment = _Alignof(TYPE) })
+#define array_layoutof(TYPE, count) ((MemoryLayout) { .size = count * sizeof(TYPE), .alignment = _Alignof(TYPE) })
 
 usize addr_align_up(usize addr, usize align);
 void* ptr_align_up(void* ptr, usize align);

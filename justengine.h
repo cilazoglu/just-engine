@@ -86,6 +86,19 @@ typedef     uint64                  usize;
 typedef     unsigned char           byte;
 // typedef     uint8                   bool;
 
+#define UINT8_MIN       ((uint8)    0x0)
+#define UINT16_MIN      ((uint16)   0x0)
+#define UINT32_MIN      ((uint32)   0x0)
+#define UINT64_MIN      ((uint64)   0x0)
+
+#define UINT8_MAX       ((uint8)    0xff)
+#define UINT16_MAX      ((uint16)   0xffff)
+#define UINT32_MAX      ((uint32)   0xffffffff)
+#define UINT64_MAX      ((uint64)   0xffffffffffffffff)
+
+#define USIZE_MIN       ((usize)    UINT64_MIN)
+#define USIZE_MAX       ((usize)    UINT64_MAX)
+
 #define Option(Type) DeclType_Option_##Type
 #define Option_None {0}
 #define Option_Some(val) { .is_some = true, .value = val, }
@@ -112,6 +125,9 @@ DECLARE__Option(char);
 #define UNINIT {0}              // Left uninitialized
 
 #define ARRAY_LENGTH(arr) (sizeof((arr)) / sizeof((arr)[0]))
+
+#define IS_EVEN(a)  ((a & 1))
+#define IS_ODD(a)   (!IS_EVEN(a))
 
 #define MAX(a, b) ((a >= b) ? a : b)
 #define MIN(a, b) ((a <= b) ? a : b)
@@ -894,8 +910,8 @@ typedef struct {
     usize alignment;
 } MemoryLayout;
 
-#define layoutof(TYPE) ((MemoryLayout) { .size = sizeof(TYPE), .alignment = _Alignof(TYPE)})
-#define array_layoutof(TYPE, count) ((MemoryLayout) { .size = count * sizeof(TYPE), .alignment = _Alignof(TYPE)})
+#define layoutof(TYPE) ((MemoryLayout) { .size = sizeof(TYPE), .alignment = _Alignof(TYPE) })
+#define array_layoutof(TYPE, count) ((MemoryLayout) { .size = count * sizeof(TYPE), .alignment = _Alignof(TYPE) })
 
 usize addr_align_up(usize addr, usize align);
 void* ptr_align_up(void* ptr, usize align);
