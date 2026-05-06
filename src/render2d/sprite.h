@@ -25,6 +25,15 @@ typedef struct {
 } SpriteTransform;
 
 typedef struct {
+    bool render_anchor;
+    uint32 render_anchor_radius;
+    Color render_anchor_color;
+    bool render_frame;
+    uint32 render_frame_thickness;
+    Color render_frame_color;
+} SpriteDebugRenderOptions;
+
+typedef struct {
     // -- render start
     TextureHandle texture;
     Color tint;
@@ -38,6 +47,7 @@ typedef struct {
     Layers layers;
     bool visible;
     bool camera_visible;
+    SpriteDebugRenderOptions debug_render_options;
 } Sprite;
 
 // typedef struct {

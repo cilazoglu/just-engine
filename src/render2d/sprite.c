@@ -295,6 +295,23 @@ void render2d_render_sprites(
             rotation,
             sprite.tint
         );
+
+        SpriteDebugRenderOptions debug = sprite.debug_render_options;
+        if (debug.render_anchor) {
+            Vector2 pos = { transform.position.x, transform.position.y };
+            DrawCircleV(pos, debug.render_anchor_radius, debug.render_anchor_color);
+        }
+        if (debug.render_frame) {
+            Vector2 pos = { transform.position.x, transform.position.y };
+            pos = Vector2Subtract(pos, origin);
+            Rectangle dest = {
+                .x = pos.x,
+                .y = pos.y,
+                .width = size.x,
+                .height = size.y,
+            };
+            DrawRectangleLinesEx(dest, debug.render_frame_thickness, debug.render_frame_color);
+        }
     }
     // render_sprites->count = 0; // RESET
 }
