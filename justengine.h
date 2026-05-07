@@ -29,8 +29,9 @@ void std_free(void *_Memory);
 
 // string.h
 
-int std_memcmp(const void *_Buf1, const void *_Buf2, size_t _Size);
 void* std_memcpy(void *__restrict__ _Dst, const void *__restrict__ _Src, size_t _Size);
+void* std_memset(void *_Dst, int _Val, size_t _Size);
+int std_memcmp(const void *_Buf1, const void *_Buf2, size_t _Size);
 int std_strcmp(const char *_Str1, const char *_Str2);
 
 // stdio.h
@@ -137,6 +138,9 @@ DECLARE__Option(char);
 #define branchless_if(cond, on_true, on_false) ( ( (!!(cond)) * (on_true) ) + ( (!!!(cond)) * (on_false) ) )
 
 #define typeof_equals(var, Type) __builtin_types_compatible_p(__typeof__((var)), Type)
+
+#define typeof_field(Type, field_name) (__typeof__(((Type*)0)->field_name))
+#define offsetof(Type, field_name) ((usize)&((Type*)0)->field_name)
 
 #define PANIC(...) do { JUST_LOG_PANIC("[%s:%d]\n", __FILE__, __LINE__); JUST_LOG_PANIC(__VA_ARGS__); std_exit(STD_EXIT_FAILURE); } while(0)
 #define UNREACHABLE() do { JUST_LOG_PANIC("UNREACHABLE: [%s:%d]\n", __FILE__, __LINE__); std_exit(STD_EXIT_FAILURE); } while(0)

@@ -9,7 +9,6 @@ typedef enum {
 } RotationWay;
 
 typedef struct {
-    uint32 z_index;
     Anchor anchor;
     Vector2 position;       // position of the anchor
     bool use_source_size;
@@ -22,6 +21,8 @@ typedef struct {
 typedef struct {
     usize kind;
     usize data_size;
+    bool visible;
+    uint8 sort_index;
     Transform2D transform;
 } Entity2D;
 
@@ -38,7 +39,7 @@ static inline EntityKey invalid_entity_key() {
 }
 
 typedef struct {
-    MemoryLayout data_layout;
+    MemoryLayout data_layout; // sizeof(Type impl Entity2D)
     // --
     usize count;
     usize capacity;
@@ -72,3 +73,5 @@ typedef struct {
 
 EntityStoreIter entity_store_begin_iter(EntityStore* store);
 Entity2D* next_entity(EntityStoreIter* iter);
+
+
