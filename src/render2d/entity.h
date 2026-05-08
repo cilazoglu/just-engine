@@ -3,20 +3,17 @@
 #include "base.h"
 #include "memory/memory.h"
 
-// typedef enum {
-//     Rotation_CW = 1,
-//     Rotation_CCW = -1,
-// } RotationWay;
+typedef struct {
+    usize index;
+    usize generation;
+} EntityKey;
 
-// typedef struct {
-//     Anchor anchor;
-//     Vector2 position;       // position of the anchor
-//     bool use_source_size;
-//     Vector2 size;
-//     Vector2 scale;
-//     float32 rotation;       // rotation around its anchor
-//     RotationWay rway;
-// } Transform2D;
+#define ENTITY_KEY_IS_INVALID(key) (key.index == JUST_USIZE_MAX)
+#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN(key.generation))
+#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD(key.generation))
+static inline EntityKey invalid_entity_key() {
+    return (EntityKey) { .index = JUST_USIZE_MAX };
+}
 
 typedef struct {
     usize kind;
@@ -24,18 +21,6 @@ typedef struct {
     bool visible;
     uint8 sort_index;
 } EntityBase;
-
-typedef struct {
-    usize index;
-    usize generation;
-} EntityKey;
-
-#define ENTITY_KEY_IS_INVALID(key) (key.index == USIZE_MAX)
-#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN(key.generation))
-#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD(key.generation))
-static inline EntityKey invalid_entity_key() {
-    return (EntityKey) { .index = USIZE_MAX };
-}
 
 typedef struct {
     MemoryLayout data_layout; // sizeof(Type impl Entity2D)
@@ -57,10 +42,11 @@ EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity
 bool entity_is_valid(EntityStore* store, EntityKey key);
 EntityBase* get_entity(EntityStore* store, EntityKey key);
 EntityBase* get_entity_checked(EntityStore* store, EntityKey key);
+EntityKey get_entity_key(EntityStore* store, EntityBase* entity);
 bool despawn_entity(EntityStore* store, EntityKey key);
 
 #define make_uniform_entity_store(EntityType, capacity) make_entity_store(sizeof(EntityType), (capacity))
-#define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), &((entity)), sizeof((entity)))
+#define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
 
 typedef struct {
     usize kind;
@@ -101,7 +87,7 @@ typedef struct {
     byte* data;
 } EntityIter;
 
-EntityIter entity_store_begin_iter(byte* data, usize data_count, usize data_size);
+EntityIter entity_begin_iter(byte* data, usize data_count, usize data_size);
 EntityBase* next_entity(EntityIter* iter);
 RenderEntityBase* next_render_entity(EntityIter* iter);
 
@@ -121,3 +107,5 @@ void destroy_entity_render_pair(EntityRenderPair* entity_render);
         sizeof(EntityType), (entity_store_capacity), \
         sizeof(RenderEntityType), (render_list_capacity), (extract_fn), (render_fn) \
     )
+
+// --

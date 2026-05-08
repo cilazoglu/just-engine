@@ -2,7 +2,7 @@
 #include "math/vector.h"
 #include "memory/dynarray.h"
 
-#include "entity2d.h"
+#include "entity.h"
 
 // -- EntityStore --
 
@@ -30,7 +30,7 @@ EntityStore make_entity_store(usize entity_size, usize capacity) {
     for (usize i = 0; i < capacity; i++) {
         store.indices[i].index = i+1;
     }
-    store.indices[capacity-1].index = USIZE_MAX;
+    store.indices[capacity-1].index = JUST_USIZE_MAX;
 
     return store;
 }
@@ -40,7 +40,7 @@ void destroy_entity_store(EntityStore* store) {
 }
 
 bool entity_store_grow(EntityStore* store, usize new_capacity) {
-    if (new_capacity == USIZE_MAX) {
+    if (new_capacity == JUST_USIZE_MAX) {
         return false;
     }
     if (new_capacity <= store->capacity) {
@@ -52,7 +52,7 @@ bool entity_store_grow(EntityStore* store, usize new_capacity) {
     dynarray_reserve2(*store, .indices, .erase, reserve_count);
     store->data = std_realloc(store->data, store->data_layout.size * new_capacity);
 
-    if (store->free_list_head != USIZE_MAX) {
+    if (store->free_list_head != JUST_USIZE_MAX) {
         store->indices[old_capacity-1].index = old_capacity;
     }
     else {
@@ -63,7 +63,7 @@ bool entity_store_grow(EntityStore* store, usize new_capacity) {
         store->indices[i].index = i+1;
         store->indices[i].generation = 0;
     }
-    store->indices[new_capacity-1].index = USIZE_MAX;
+    store->indices[new_capacity-1].index = JUST_USIZE_MAX;
 
     return true;
 }
@@ -73,14 +73,14 @@ static inline byte* store_get_data_i(EntityStore* store, usize i) {
 }
 
 EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity_size) {
-    if (store->free_list_head == USIZE_MAX) {
+    if (store->free_list_head == JUST_USIZE_MAX) {
         #define GROW_FACTOR 2
 
         usize new_capacity =
-            (store->capacity < (USIZE_MAX / 2))
+            (store->capacity < (JUST_USIZE_MAX / 2))
                 ? GROW_FACTOR * store->capacity
-                : store->capacity + ((USIZE_MAX - store->capacity)/2); // asymptotic approach to USIZE_MAX, new_capacity: <= USIZE_MAX-1
-        new_capacity = MIN(new_capacity, USIZE_MAX-1); // NOTE: unnecessary
+                : store->capacity + ((JUST_USIZE_MAX - store->capacity)/2); // asymptotic approach to USIZE_MAX, new_capacity: <= USIZE_MAX-1
+        new_capacity = MIN(new_capacity, JUST_USIZE_MAX-1); // NOTE: unnecessary
 
         if (!entity_store_grow(store, new_capacity)) {
             // OUT-OF-POINTER-SPACE
@@ -93,7 +93,7 @@ EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity
     usize index = store->free_list_head;
     store->free_list_head = store->indices[index].index; // last_free (index: store->capacity-1) has index USIZE_MAX
     usize generation = store->indices[index].generation;
-    if (generation == USIZE_MAX) {
+    if (generation == JUST_USIZE_MAX) {
         // OUT-OF-GENERATION-SPACE
         return invalid_entity_key(); // TODO: instead try the next free until found good generation, this slot is forever lost
     }
@@ -132,6 +132,35 @@ EntityBase* get_entity_checked(EntityStore* store, EntityKey key) {
         return NULL;
     }
     return get_entity(store, key);
+}
+
+EntityKey get_entity_key(EntityStore* store, EntityBase* entity) {
+    byte* entity_data = (byte*) entity;
+    if (entity_data < store->data) {
+        return invalid_entity_key();
+    }
+
+    usize data_offset = (usize)(store->data - entity_data);
+    if (data_offset % store->data_layout.size != 0) {
+        return invalid_entity_key();
+    }
+
+    usize data_index = data_offset / store->data_layout.size;
+    if (data_index >= store->count) {
+        return invalid_entity_key();
+    }
+
+    usize index = store->erase[data_index];
+    usize generation = store->indices[index].generation;
+    EntityKey entity_key = {
+        .index = index,
+        .generation = generation,
+    };
+    if (ENTITY_KEY_SLOT_IS_FREE(entity_key)) {
+        return invalid_entity_key();
+    }
+
+    return entity_key;
 }
 
 bool despawn_entity(EntityStore* store, EntityKey key) {
@@ -306,6 +335,8 @@ void destroy_entity_render_pair(EntityRenderPair* entity_render) {
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 
+#if 0
+
 typedef enum {
     EntityKind_Circle,
     EntityKind_Rectangle,
@@ -431,3 +462,5 @@ static void entity2d_test() {
     // RENDER
     entity_render_list_render(render_list);
 }
+
+#endif

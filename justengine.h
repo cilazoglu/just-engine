@@ -87,18 +87,18 @@ typedef     uint64                  usize;
 typedef     unsigned char           byte;
 // typedef     uint8                   bool;
 
-#define UINT8_MIN       ((uint8)    0x0)
-#define UINT16_MIN      ((uint16)   0x0)
-#define UINT32_MIN      ((uint32)   0x0)
-#define UINT64_MIN      ((uint64)   0x0)
+#define JUST_UINT8_MIN       ((uint8)    0x0)
+#define JUST_UINT16_MIN      ((uint16)   0x0)
+#define JUST_UINT32_MIN      ((uint32)   0x0)
+#define JUST_UINT64_MIN      ((uint64)   0x0)
 
-#define UINT8_MAX       ((uint8)    0xff)
-#define UINT16_MAX      ((uint16)   0xffff)
-#define UINT32_MAX      ((uint32)   0xffffffff)
-#define UINT64_MAX      ((uint64)   0xffffffffffffffff)
+#define JUST_UINT8_MAX       ((uint8)    0xff)
+#define JUST_UINT16_MAX      ((uint16)   0xffff)
+#define JUST_UINT32_MAX      ((uint32)   0xffffffff)
+#define JUST_UINT64_MAX      ((uint64)   0xffffffffffffffff)
 
-#define USIZE_MIN       ((usize)    UINT64_MIN)
-#define USIZE_MAX       ((usize)    UINT64_MAX)
+#define JUST_USIZE_MIN       ((usize)    JUST_UINT64_MIN)
+#define JUST_USIZE_MAX       ((usize)    JUST_UINT64_MAX)
 
 #define Option(Type) DeclType_Option_##Type
 #define Option_None {0}
@@ -127,8 +127,8 @@ DECLARE__Option(char);
 
 #define ARRAY_LENGTH(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
-#define IS_EVEN(a)  ((a & 1))
-#define IS_ODD(a)   (!IS_EVEN(a))
+#define IS_ODD(a)  ((a & 1))
+#define IS_EVEN(a)   (!IS_ODD(a))
 
 #define MAX(a, b) ((a >= b) ? a : b)
 #define MIN(a, b) ((a <= b) ? a : b)
@@ -140,7 +140,8 @@ DECLARE__Option(char);
 #define typeof_equals(var, Type) __builtin_types_compatible_p(__typeof__((var)), Type)
 
 #define typeof_field(Type, field_name) (__typeof__(((Type*)0)->field_name))
-#define offsetof(Type, field_name) ((usize)&((Type*)0)->field_name)
+#define just_offsetof(Type, field_name) __builtin_offsetof(Type, field_name)
+// ((usize)&((Type*)0)->field_name)
 
 #define PANIC(...) do { JUST_LOG_PANIC("[%s:%d]\n", __FILE__, __LINE__); JUST_LOG_PANIC(__VA_ARGS__); std_exit(STD_EXIT_FAILURE); } while(0)
 #define UNREACHABLE() do { JUST_LOG_PANIC("UNREACHABLE: [%s:%d]\n", __FILE__, __LINE__); std_exit(STD_EXIT_FAILURE); } while(0)
@@ -3950,6 +3951,118 @@ void SYSTEM_RENDER_render2d_render_sprites(
 );
 
 #endif // __HEADER_RENDER2D_SPRITE
+
+#define __HEADER_RENDER2D_ENTITY
+#ifdef __HEADER_RENDER2D_ENTITY
+
+typedef struct {
+    usize index;
+    usize generation;
+} EntityKey;
+
+#define ENTITY_KEY_IS_INVALID(key) (key.index == JUST_USIZE_MAX)
+#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN(key.generation))
+#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD(key.generation))
+static inline EntityKey invalid_entity_key() {
+    return (EntityKey) { .index = JUST_USIZE_MAX };
+}
+
+typedef struct {
+    usize kind;
+    usize data_size;
+    bool visible;
+    uint8 sort_index;
+} EntityBase;
+
+typedef struct {
+    MemoryLayout data_layout; // sizeof(Type impl Entity2D)
+    // --
+    usize count;
+    usize capacity;
+    usize free_list_head;
+    EntityKey* indices; // occupied: .index -> data, free: .index -> indices (next_free), last_free ([.capacity]) := USIZE_MAX
+    byte* data; // Entity2D*
+    usize* erase;
+} EntityStore;
+
+EntityStore make_entity_store(usize entity_size, usize capacity);
+void destroy_entity_store(EntityStore* store);
+void entity_store_sort_z_index(EntityStore* store);
+bool entity_store_grow(EntityStore* store, usize new_capacity);
+// EntityKey spawn_entity(EntityStore* store, EntityBase entity);
+EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity_size);
+bool entity_is_valid(EntityStore* store, EntityKey key);
+EntityBase* get_entity(EntityStore* store, EntityKey key);
+EntityBase* get_entity_checked(EntityStore* store, EntityKey key);
+EntityKey get_entity_key(EntityStore* store, EntityBase* entity);
+bool despawn_entity(EntityStore* store, EntityKey key);
+
+#define make_uniform_entity_store(EntityType, capacity) make_entity_store(sizeof(EntityType), (capacity))
+#define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
+
+typedef struct {
+    usize kind;
+    usize data_size;
+    uint8 sort_index;
+} RenderEntityBase;
+
+typedef void (*EntityRenderExtractFn)(EntityBase* entity, RenderEntityBase* set_render_entity);
+typedef void (*RenderEntityRenderFn)(RenderEntityBase* render_entity);
+
+#define RENDER_LIST_SORT_RADIX 256
+typedef struct {
+    usize count;
+    usize capacity;
+    usize render_entity_size; // sizeof(Type impl RenderEntityBase)
+    usize freq[RENDER_LIST_SORT_RADIX];
+    byte* data;
+    byte* sorted_data;
+    // --
+    RenderEntityBase* render_entity_src_slot;
+    EntityRenderExtractFn extract_fn;
+    RenderEntityRenderFn render_fn;
+} EntityRenderList;
+
+EntityRenderList make_entity_render_list(usize render_entity_size, usize capacity, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn);
+void destroy_entity_render_list(EntityRenderList* render_list);
+void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store);
+void entity_render_list_sort(EntityRenderList* render_list);
+void entity_render_list_render(EntityRenderList* render_list);
+
+#define make_unifom_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
+    make_entity_render_list(sizeof(RenderEntityType), (capacity), (extract_fn), (render_fn))
+
+typedef struct {
+    usize index;
+    usize count;
+    usize entity_size;
+    byte* data;
+} EntityIter;
+
+EntityIter entity_begin_iter(byte* data, usize data_count, usize data_size);
+EntityBase* next_entity(EntityIter* iter);
+RenderEntityBase* next_render_entity(EntityIter* iter);
+
+typedef struct {
+    EntityStore store;
+    EntityRenderList render_list;
+} EntityRenderPair;
+
+EntityRenderPair make_entity_render_pair(
+    usize entity_size, usize entity_store_capacity,
+    usize render_entity_size, usize render_list_capacity, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn
+);
+void destroy_entity_render_pair(EntityRenderPair* entity_render);
+
+#define make_uniform_entity_render_pair(EntityType, RenderEntityType, entity_store_capacity, render_list_capacity, extract_fn, render_fn) \
+    make_entity_render_pair( \
+        sizeof(EntityType), (entity_store_capacity), \
+        sizeof(RenderEntityType), (render_list_capacity), (extract_fn), (render_fn) \
+    )
+
+// --
+
+#endif // __HEADER_RENDER2D_ENTITY
 
 #define __HEADER_COROUTINE_COROUTINE
 #ifdef __HEADER_COROUTINE_COROUTINE
