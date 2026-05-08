@@ -4,6 +4,8 @@
 
 #include "entity2d.h"
 
+// -- EntityStore --
+
 EntityStore make_entity_store(usize entity_size, usize capacity) {
     ASSERT(capacity > 0);
     EntityStore store = {
@@ -11,7 +13,6 @@ EntityStore make_entity_store(usize entity_size, usize capacity) {
         .count = 0,
         .capacity = capacity,
         .free_list_head = 0,
-        // .free_list_tail = capacity-1,
         .indices = NULL,
         .data = NULL,
         .erase = NULL,
@@ -36,10 +37,6 @@ EntityStore make_entity_store(usize entity_size, usize capacity) {
 
 void destroy_entity_store(EntityStore* store) {
     dynarray_free3(*store, .indices, .data, .erase);
-}
-
-void entity_store_sort_z_index(EntityStore* store) {
-    UNREACHABLE(); // TODO
 }
 
 bool entity_store_grow(EntityStore* store, usize new_capacity) {
@@ -123,14 +120,14 @@ bool entity_is_valid(EntityStore* store, EntityKey key) {
     return key.index < store->capacity && ENTITY_KEY_SLOT_IS_OCCUPIED(key) && key.generation == store->indices[key.index].generation;
 }
 
-Entity2D* get_entity(EntityStore* store, EntityKey key) {
+EntityBase* get_entity(EntityStore* store, EntityKey key) {
     usize data_index = store->indices[key.index].index;
     byte* entity_data = store_get_data_i(store, data_index);
-    return (Entity2D*) entity_data;
+    return (EntityBase*) entity_data;
     // return &store->data[store->indices[key.index].index];
 }
 
-Entity2D* get_entity_checked(EntityStore* store, EntityKey key) {
+EntityBase* get_entity_checked(EntityStore* store, EntityKey key) {
     if (!entity_is_valid(store, key)) {
         return NULL;
     }
@@ -158,51 +155,7 @@ bool despawn_entity(EntityStore* store, EntityKey key) {
     }
 }
 
-// -----
-
-EntityStoreIter entity_store_begin_iter(EntityStore* store) {
-    return (EntityStoreIter) {
-        .index = 0,
-        .count = store->count,
-        .entity_size = store->data_layout.size,
-        .data = store->data,
-    };
-}
-
-static inline byte* iter_get_data_i(EntityStoreIter* iter, usize i) {
-    return iter->data + (i * iter->entity_size);
-}
-
-Entity2D* next_entity(EntityStoreIter* iter) {
-    if (iter->count <= iter->index) {
-        return NULL;
-    }
-    return (Entity2D*) iter_get_data_i(iter, iter->index++);
-}
-
-// -----
-
-typedef struct {
-    usize kind;
-    usize data_size;
-    uint8 sort_index;
-} RenderEntity2D;
-
-typedef RenderEntity2D* (*EntityRenderExtractFn)(Entity2D* entity);
-typedef void (*RenderEntityRenderFn)(RenderEntity2D* render_entity);
-
-#define RADIX 256
-typedef struct {
-    usize count;
-    usize capacity;
-    usize render_entity_size; // sizeof(Type impl RenderEntity2D)
-    usize freq[RADIX];
-    byte* data;
-    byte* sorted_data;
-    // --
-    EntityRenderExtractFn extract_fn;
-    RenderEntityRenderFn render_fn;
-} EntityRenderList;
+// -- EntityRenderList --
 
 static inline byte* render_list_get_data_i(EntityRenderList* render_list, usize i) {
     return render_list->data + (i * render_list->render_entity_size);
@@ -210,6 +163,148 @@ static inline byte* render_list_get_data_i(EntityRenderList* render_list, usize 
 static inline byte* render_list_get_sort_data_i(EntityRenderList* render_list, usize i) {
     return render_list->sorted_data + (i * render_list->render_entity_size);
 }
+
+EntityRenderList make_entity_render_list(usize render_entity_size, usize capacity, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn) {
+    ASSERT(capacity > 0);
+    return (EntityRenderList) {
+        .count = 0,
+        .capacity = 0,
+        .render_entity_size = render_entity_size,
+        .freq = {0},
+        .data = std_malloc(render_entity_size * capacity),
+        .sorted_data = std_malloc(render_entity_size * capacity),
+        // --
+        .render_entity_src_slot = std_malloc(render_entity_size),
+        .extract_fn = extract_fn,
+        .render_fn = render_fn,
+    };
+}
+
+void destroy_entity_render_list(EntityRenderList* render_list) {
+    dynarray_free2(*render_list, .data, .sorted_data);
+    std_free(render_list->render_entity_src_slot);
+}
+
+void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store) {
+    usize visible_count = 0;
+    for (usize i = 0; i < store->count; i++) {
+        EntityBase* entity = (void*)store_get_data_i(store, i);
+        if (entity->visible) {
+            visible_count++;
+        }
+    }
+
+    if (render_list->capacity < visible_count) {
+        #define OVER_FACTOR 2
+        render_list->capacity = MIN(OVER_FACTOR * visible_count, store->count);
+        usize new_size = render_list->render_entity_size * render_list->capacity;
+        render_list->data = std_realloc(render_list->data, new_size);
+        render_list->sorted_data = std_realloc(render_list->sorted_data, new_size);
+        #undef OVER_FACTOR
+    }
+
+    render_list->count = 0;
+    for (usize i = 0; i < store->count; i++) {
+        EntityBase* entity = (void*)store_get_data_i(store, i);
+        if (entity->visible) {
+            render_list->extract_fn(entity, render_list->render_entity_src_slot);
+            RenderEntityBase* render_entity_slot = (void*)render_list_get_data_i(render_list, render_list->count++);
+            std_memcpy(render_entity_slot, render_list->render_entity_src_slot, render_list->render_entity_size);
+        }
+    }
+}
+
+void entity_render_list_sort(EntityRenderList* render_list) {
+    // init
+    for (usize i = 0; i < RENDER_LIST_SORT_RADIX; i++) {
+        render_list->freq[i] = 0;
+    }
+
+    // count frequencies
+    for (usize i = 0; i < render_list->count; i++) {
+        RenderEntityBase* entity = (void*)render_list_get_data_i(render_list, i);
+        render_list->freq[entity->sort_index]++;
+    }
+
+    // compute cumulative
+    for (usize i = 1; i < RENDER_LIST_SORT_RADIX; i++) {
+        render_list->freq[i] += render_list->freq[i-1];
+    }
+
+    // build sorted
+    for (usize i = 0; i < render_list->count; i++) {
+        usize back_i = render_list->count - 1 - i;
+
+        RenderEntityBase* entity_i = (void*)render_list_get_data_i(render_list, back_i);
+        render_list->freq[entity_i->sort_index]--;
+
+        byte* sorted_data_i = render_list_get_sort_data_i(render_list, render_list->freq[entity_i->sort_index]);
+        std_memcpy(sorted_data_i, entity_i, render_list->render_entity_size);
+    }
+
+    // swap
+    byte* temp = render_list->data;
+    render_list->data = render_list->sorted_data;
+    render_list->sorted_data = temp;
+}
+
+void entity_render_list_render(EntityRenderList* render_list) {
+    EntityIter entity_iter = entity_begin_iter(render_list->data, render_list->count, render_list->render_entity_size);
+    RenderEntityBase* render_entity;
+    while ((render_entity = next_render_entity(&entity_iter)) != NULL) {
+        render_list->render_fn(render_entity);
+    }
+}
+
+#define make_unifom_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
+    make_entity_render_list(sizeof(RenderEntityType), (capacity), (extract_fn), (render_fn))
+
+// -- EntityIter --
+
+EntityIter entity_begin_iter(byte* data, usize data_count, usize data_size) {
+    return (EntityIter) {
+        .index = 0,
+        .count = data_count,
+        .entity_size = data_size,
+        .data = data,
+    };
+}
+
+static inline byte* iter_get_data_i(EntityIter* iter, usize i) {
+    return iter->data + (i * iter->entity_size);
+}
+
+EntityBase* next_entity(EntityIter* iter) {
+    if (iter->count <= iter->index) {
+        return NULL;
+    }
+    return (EntityBase*) iter_get_data_i(iter, iter->index++);
+}
+
+RenderEntityBase* next_render_entity(EntityIter* iter) {
+    return (RenderEntityBase*) next_entity(iter);
+}
+
+// -- EntityRenderPair --
+
+EntityRenderPair make_entity_render_pair(
+    usize entity_size, usize entity_store_capacity,
+    usize render_entity_size, usize render_list_capacity, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn
+) {
+    return (EntityRenderPair) {
+        .store = make_entity_store(entity_size, entity_store_capacity),
+        .render_list = make_entity_render_list(render_entity_size, render_list_capacity, extract_fn, render_fn),
+    };
+}
+
+void destroy_entity_render_pair(EntityRenderPair* entity_render) {
+    destroy_entity_store(&entity_render->store);
+    destroy_entity_render_list(&entity_render->render_list);
+}
+
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
 
 typedef enum {
     EntityKind_Circle,
@@ -227,7 +322,7 @@ typedef struct {
 } RectangleEntity;
 
 typedef struct {
-    Entity2D entity;
+    EntityBase entity;
     union {
         CircleEntity circle_entity;
         RectangleEntity rectangle_entity;
@@ -235,146 +330,104 @@ typedef struct {
 } GameEntity;
 
 typedef struct {
-    RenderEntity2D render_entity;
+    RenderEntityBase render_entity;
     Color color;
 } GameRenderEntity;
-
-RenderEntity2D* extract_test(Entity2D* entity) {
-    static GameRenderEntity temp = {0};
-    GameEntity* game_entity = (void*)entity;
-    temp.render_entity.kind = game_entity->entity.kind;
-    temp.render_entity.data_size = game_entity->entity.data_size;
-    temp.render_entity.sort_index = game_entity->entity.sort_index;
-    temp.color = game_entity->entity.kind == EntityKind_Circle ? game_entity->circle_entity.color : game_entity->rectangle_entity.color;
-    return &temp;
-}
-
-EntityRenderList make_entity_render_list(usize render_entity_size, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn) {
-    return (EntityRenderList) {
-        .count = 0,
-        .capacity = 0,
-        .render_entity_size = render_entity_size,
-        .freq = {0},
-        .data = NULL,
-        .sorted_data = NULL,
-        // --
-        .extract_fn = extract_fn,
-        .render_fn = render_fn,
-    };
-}
-
-void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store) {
-    usize visible_count = 0;
-    for (usize i = 0; i < store->count; i++) {
-        Entity2D* entity = (void*)store_get_data_i(store, i);
-        if (entity->visible) {
-            visible_count++;
-        }
-    }
-
-    if (render_list->capacity < visible_count) {
-        #define OVER_FACTOR 2
-        render_list->capacity = MIN(OVER_FACTOR * visible_count, store->count);
-        usize new_size = render_list->render_entity_size * render_list->capacity;
-        render_list->data = std_realloc(render_list->data, new_size);
-        render_list->sorted_data = std_realloc(render_list->sorted_data, new_size);
-        #undef OVER_FACTOR
-    }
-
-    render_list->count = 0;
-    for (usize i = 0; i < store->count; i++) {
-        Entity2D* entity = (void*)store_get_data_i(store, i);
-        if (entity->visible) {
-            RenderEntity2D* render_entity_src = render_list->extract_fn(entity);
-            RenderEntity2D* render_entity_slot = (void*)render_list_get_data_i(render_list, render_list->count++);
-            std_memcpy(render_entity_slot, render_entity_src, render_list->render_entity_size);
-        }
-    }
-}
-
-void entity_render_list_sort(EntityRenderList* render_list) {
-    // init
-    for (usize i = 0; i < RADIX; i++) {
-        render_list->freq[i] = 0;
-    }
-
-    // count frequencies
-    for (usize i = 0; i < render_list->count; i++) {
-        RenderEntity2D* entity = (void*)render_list_get_data_i(render_list, i);
-        render_list->freq[entity->sort_index]++;
-    }
-
-    // compute cumulative
-    for (usize i = 1; i < RADIX; i++) {
-        render_list->freq[i] += render_list->freq[i-1];
-    }
-
-    // build sorted
-    for (usize i = 0; i < render_list->count; i++) {
-        usize back_i = render_list->count - 1 - i;
-
-        RenderEntity2D* entity_i = (void*)render_list_get_data_i(render_list, back_i);
-        render_list->freq[entity_i->sort_index]--;
-
-        byte* sorted_data_i = render_list_get_sort_data_i(render_list, render_list->freq[entity_i->sort_index]);
-        std_memcpy(sorted_data_i, entity_i, render_list->render_entity_size);
-    }
-
-    // swap
-    byte* temp = render_list->data;
-    render_list->data = render_list->sorted_data;
-    render_list->sorted_data = temp;
-}
-
-// -----
-
-
 
 void spawn_game_entity(EntityStore* store, GameEntity entity) {
     spawn_entity(store, entity);
 }
 
-static void entity2d_test() {
-    EntityStore STORE = make_uniform_entity_store(GameEntity, 100);
-    EntityStore* store = &STORE;
+void extract_entity(EntityBase* entity, RenderEntityBase* set_render_entity) {
+    GameEntity* game_entity = (void*)entity;
+    GameRenderEntity* set_game_render_entity = (void*)set_render_entity;
 
+    *set_game_render_entity = (GameRenderEntity) {
+        .render_entity = (RenderEntityBase) {
+            .kind = game_entity->entity.kind,
+            .data_size = game_entity->entity.data_size,
+            .sort_index = game_entity->entity.sort_index,
+        },
+        .color = game_entity->entity.kind == EntityKind_Circle ? game_entity->circle_entity.color : game_entity->rectangle_entity.color
+    };
+}
+
+void render_entity(RenderEntityBase* render_entity) {
+    GameRenderEntity* game_render_entity = (void*)render_entity;
+
+    Color color = game_render_entity->color;
+    switch (game_render_entity->render_entity.kind) {
+    case EntityKind_Circle:
+        DrawCircle(0, 0, 5, color);
+    case EntityKind_Rectangle:
+        DrawRectangle(0, 0, 10, 10, color);
+    }
+}
+
+static void entity2d_test() {
+    EntityRenderPair ENTITY_RENDER = make_uniform_entity_render_pair(
+        GameEntity, GameRenderEntity, 100, 100, extract_entity, render_entity
+    );
+    EntityStore* store = &ENTITY_RENDER.store;
+    EntityRenderList* render_list = &ENTITY_RENDER.render_list;
+    
+    // UPDATE
     spawn_game_entity(
         store,
         (GameEntity) {
-            .entity = (Entity2D) {
+            .entity = (EntityBase) {
                 .kind = EntityKind_Circle,
                 // .data_size = sizeof(GameEntity),
-                .transform = (Transform2D) {
-                    .anchor = make_anchor(Anchor_Center),
-                    .position = (Vector2) { 100, 100 },
-                    .size = (Vector2) { 10, 10 },
-                    .scale = (Vector2) { 1, 1 },
-                }
+                .visible = false,
+                .sort_index = 10,
             },
+            // .transform = (Transform2D) {
+            //     .anchor = make_anchor(Anchor_Center),
+            //     .position = (Vector2) { 100, 100 },
+            //     .size = (Vector2) { 10, 10 },
+            //     .scale = (Vector2) { 1, 1 },
+            // },
             .circle_entity = (CircleEntity) {
                 .color = RED,
-            }
+            },
         }
     );
     
     spawn_game_entity(
         store,
         (GameEntity) {
-            .entity = (Entity2D) {
+            .entity = (EntityBase) {
                 .kind = EntityKind_Rectangle,
                 // .data_size = sizeof(GameEntity),
-                .transform = (Transform2D) {
-                    .anchor = make_anchor(Anchor_Center),
-                    .position = (Vector2) { 100, 100 },
-                    .size = (Vector2) { 10, 10 },
-                    .scale = (Vector2) { 1, 1 },
-                }
+                .visible = false,
+                .sort_index = 20,
             },
+            // .transform = (Transform2D) {
+            //     .anchor = make_anchor(Anchor_Center),
+            //     .position = (Vector2) { 100, 100 },
+            //     .size = (Vector2) { 10, 10 },
+            //     .scale = (Vector2) { 1, 1 },
+            // },
             .rectangle_entity = (RectangleEntity) {
                 .color = BLUE,
                 .render_frame = true,
                 .frame_color = MAGENTA,
-            }
+            },
         }
     );
+
+    EntityIter entity_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
+    EntityBase* entity;
+    while ((entity = next_entity(&entity_iter)) != NULL) {
+        entity->visible = true;
+    }
+
+    // RENDER_EXTRACT
+    entity_render_list_extract(render_list, store);
+
+    // RENDER_SORT
+    entity_render_list_sort(render_list);
+
+    // RENDER
+    entity_render_list_render(render_list);
 }
