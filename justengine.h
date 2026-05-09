@@ -3968,11 +3968,24 @@ static inline EntityKey invalid_entity_key() {
 }
 
 typedef struct {
+    bool render_decided;
+} EntityBaseInternal;
+
+typedef struct {
     usize kind;
     usize data_size;
-    bool visible;
+    // --
     uint8 sort_index;
+    // --
+    bool visible;
+    // --
+    bool use_layer_system;
+    Layers layers;
+    // --
+    EntityBaseInternal __internal__;
 } EntityBase;
+
+#define entity_data_i(data_ptr, entity_size, i) ((byte*)(((byte*)(data_ptr)) + ((entity_size) * (i))))
 
 typedef struct {
     MemoryLayout data_layout; // sizeof(Type impl Entity2D)
@@ -4025,11 +4038,16 @@ typedef struct {
 
 EntityRenderList make_entity_render_list(usize render_entity_size, usize capacity, EntityRenderExtractFn extract_fn, RenderEntityRenderFn render_fn);
 void destroy_entity_render_list(EntityRenderList* render_list);
+
+/**
+ * call just after `entity->__internal__.render_decided` is set for each entity
+ */
+void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store);
 void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store);
 void entity_render_list_sort(EntityRenderList* render_list);
 void entity_render_list_render(EntityRenderList* render_list);
 
-#define make_unifom_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
+#define make_uniform_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
     make_entity_render_list(sizeof(RenderEntityType), (capacity), (extract_fn), (render_fn))
 
 typedef struct {
@@ -4040,6 +4058,7 @@ typedef struct {
 } EntityIter;
 
 EntityIter entity_begin_iter(byte* data, usize data_count, usize data_size);
+void entity_iter_reset(EntityIter* iter);
 EntityBase* next_entity(EntityIter* iter);
 RenderEntityBase* next_render_entity(EntityIter* iter);
 

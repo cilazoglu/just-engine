@@ -214,7 +214,50 @@ void destroy_entity_render_list(EntityRenderList* render_list) {
     std_free(render_list->render_entity_src_slot);
 }
 
+/**
+ * call just after `entity->__internal__.render_decided` is set for each entity
+ */
+void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store) {
+    EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
+    EntityBase* entity = NULL;
+
+    usize render_count = 0;
+    while ((entity = next_entity(&store_iter)) != NULL) {
+        if (entity->__internal__.render_decided) {
+            render_count++;
+        }
+    }
+
+    if (render_list->capacity < render_count) {
+        #define OVER_FACTOR 2
+        usize new_capacity = OVER_FACTOR * render_count;
+        render_list->capacity = MIN(new_capacity, store->count);
+        usize new_size = render_list->render_entity_size * render_list->capacity;
+        render_list->data = std_realloc(render_list->data, new_size);
+        render_list->sorted_data = std_realloc(render_list->sorted_data, new_size);
+        #undef OVER_FACTOR
+    }
+
+    render_list->count = 0;
+    entity_iter_reset(&store_iter);
+    while ((entity = next_entity(&store_iter)) != NULL) {
+        if (entity->__internal__.render_decided) {
+            render_list->extract_fn(entity, render_list->render_entity_src_slot);
+            RenderEntityBase* render_entity_slot = (void*)render_list_get_data_i(render_list, render_list->count++);
+            std_memcpy(render_entity_slot, render_list->render_entity_src_slot, render_list->render_entity_size);
+        }
+    }
+}
+
 void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store) {
+    EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
+    EntityBase* entity = NULL;
+    while ((entity = next_entity(&store_iter)) != NULL) {
+        entity->__internal__.render_decided = entity->visible;
+    }
+    entity_render_list_extract_base(render_list, store);
+
+    #if 0
     usize visible_count = 0;
     for (usize i = 0; i < store->count; i++) {
         EntityBase* entity = (void*)store_get_data_i(store, i);
@@ -241,6 +284,7 @@ void entity_render_list_extract(EntityRenderList* render_list, EntityStore* stor
             std_memcpy(render_entity_slot, render_list->render_entity_src_slot, render_list->render_entity_size);
         }
     }
+    #endif
 }
 
 void entity_render_list_sort(EntityRenderList* render_list) {
@@ -297,6 +341,10 @@ EntityIter entity_begin_iter(byte* data, usize data_count, usize data_size) {
         .entity_size = data_size,
         .data = data,
     };
+}
+
+void entity_iter_reset(EntityIter* iter) {
+    iter->index = 0;
 }
 
 static inline byte* iter_get_data_i(EntityIter* iter, usize i) {
