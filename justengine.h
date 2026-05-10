@@ -4466,8 +4466,11 @@ typedef struct {
         usize capacity;
         RenderTargetId* order;
     } render_target_order;
-    RenderTargetId main_window_render_target;
-    RenderTargetId render_screen_target;
+    struct {
+        RenderTargetId main_window;
+        RenderTargetId render_screen;
+        TextureHandle render_screen_texture;
+    } known_render_targets;
     // -- Render2D
     EntityCamera2DStore camera_store;
     // -- UI

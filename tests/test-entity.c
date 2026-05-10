@@ -92,6 +92,9 @@ typedef struct {
     TextureAssets* texture_assets;
 } GameEntityRenderRes;
 
+GameEntityExtractRes GAME_ENTITY_EXTRACT_RES = STARTUP_INIT;
+GameEntityRenderRes GAME_ENTITY_RENDER_RES = STARTUP_INIT;
+
 EntityKey spawn_game_entity(EntityStore* store, GameEntity entity) {
     return spawn_entity(store, entity);
 }
@@ -263,27 +266,26 @@ int main_2() {
         .render2d = {
             .render_screen_size = { 1000, 1000 },
             .clear_color = GRAY,
-            .EXTRACT_RES = EXT
-        }
-        struct {
-            URectSize render_screen_size; // 640x360
-            Color clear_color;
-            void* EXTRACT_RES;
-            void* RENDER_RES;
-        } render2d;
+            .EXTRACT_RES = &GAME_ENTITY_EXTRACT_RES,
+            .RENDER_RES = &GAME_ENTITY_RENDER_RES,
+        },
         // --------
-        bool use_network_subsystem;
-        struct {
-            NetworkConfig config;
-        } network;
+        .use_network_subsystem = false,
         // --------
-        bool use_http_client_subsystem;
+        .use_http_client_subsystem = false,
         // --------
-        struct {
-            usize user_allocator_impl_count;
-        } vtable;
+        .vtable = {
+            .user_allocator_impl_count = 0,
+        },
         // --------
     });
+
+    GAME_ENTITY_EXTRACT_RES = (GameEntityExtractRes) {
+        .texture_assets = &JUST_GLOBAL.texture_assets,
+    };
+    GAME_ENTITY_RENDER_RES = (GameEntityRenderRes) {
+        .texture_assets = &JUST_GLOBAL.texture_assets,
+    };
 
     RenderTargets RENDER_TARGETS = {0};
 

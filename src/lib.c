@@ -31,12 +31,16 @@ JustEngineGlobalResources JUST_GLOBAL = LAZY_INIT;
 JustEngineGlobalRenderResources JUST_RENDER_GLOBAL = LAZY_INIT;
 
 void just_engine_init(JustEngineInit init) {
+    TextureAssets texture_assets = new_texture_assets();
+
     RenderTargets render_targets = {0};
-    RenderTargetId window_target_id = create_render_target_window(&render_targets, init.window.title, init.window.size, init.window.clear_color);
+    RenderTargetId main_window_target_id = create_render_target_window(&render_targets, init.window.title, init.window.size, init.window.clear_color);
     RenderTargetId render_screen_target_id = create_render_target_texture(&render_targets, init.render2d.render_screen_size, init.render2d.clear_color);
+    TextureHandle render_screen_texture_handle = texture_assets_reserve_texture_slot(&texture_assets);
     {
         RenderTarget* render_target = get_render_target(&render_targets, render_screen_target_id);
         SetTextureFilter(render_target->target.texture.texture.texture, TEXTURE_FILTER_POINT);
+        texture_assets_put_texture(&texture_assets, render_screen_texture_handle, render_target->target.texture.texture.texture);
     }
 
     JUST_GLOBAL = (JustEngineGlobalResources) {
@@ -52,15 +56,18 @@ void just_engine_init(JustEngineInit init) {
         .threadpool = thread_pool_create(init.threadpool.nthreads, init.threadpool.task_queue_capacity),
         // --
         .file_image_server = LATER_INIT,
-        .texture_assets = new_texture_assets(),
+        .texture_assets = texture_assets,
         .texture_asset_events = TextureAssetEvent__events_create(),
         // --
         .entity_store = init.functions.entity_store_make_fn(),
         // --
         .render_targets = render_targets,
         .render_target_order = LATER_INIT,
-        .main_window_render_target = window_target_id,
-        .render_screen_target = render_screen_target_id,
+        .known_render_targets = {
+            .main_window = main_window_target_id,
+            .render_screen = render_screen_target_id,
+            .render_screen_texture = render_screen_texture_handle,
+        },
         // --
         .camera_store = make_entity_camera2d_store(),
         // --
@@ -78,8 +85,8 @@ void just_engine_init(JustEngineInit init) {
         .asset_folder = init.dir.asset_dir,
     };
 
-    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.render_screen_target);
-    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.main_window_render_target);
+    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.known_render_targets.render_screen);
+    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.known_render_targets.main_window);
 
     allocator_vtable_reserve(JUST_ENGINE_ALLOCATOR_IMPL_COUNT + init.vtable.user_allocator_impl_count);
     just_engine__allocator_vtable_add_entries();
@@ -353,7 +360,7 @@ void JUST_SYSTEM_RENDER_RENDER_render2d() {
 
 void JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing() {
     RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
-    RenderTargetId main_window_render_target = JUST_GLOBAL.main_window_render_target;
+    RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
 
     RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
     render_target_begin_render(render_target);
@@ -364,7 +371,7 @@ void JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d() {
     RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
     CameraRenderLists* crender_lists = &JUST_RENDER_GLOBAL.crender_lists;
     EntityCamera2DStore* camera_store = &JUST_GLOBAL.camera_store;
-    RenderTargetId main_window_render_target = JUST_GLOBAL.main_window_render_target;
+    RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
 
     entity_render_for_each_camera2d(
         RENDER_RES,
