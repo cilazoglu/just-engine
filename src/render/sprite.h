@@ -1,5 +1,7 @@
 #pragma once
 
+#if 0
+
 #include "raylib.h"
 
 #include "base.h"
@@ -116,3 +118,5 @@ void SYSTEM_RENDER_render2d_render_sprites(
     SpriteCameraStore* RES_sprite_camera_store,
     PreparedRenderSprites* RENDER_RES_prepared_render_sprites
 );
+
+#endif

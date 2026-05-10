@@ -1,3 +1,6 @@
+
+#if 0
+
 #include <assert.h>
 
 #include "raylib.h"
@@ -333,3 +336,5 @@ void SYSTEM_RENDER_render2d_render_sprites(
         render2d_end_camera_render();
     }
 }
+
+#endif

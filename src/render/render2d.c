@@ -23,7 +23,7 @@ void render2d_prepare_camera_render_lists(
     }
 }
 
-static void entity_render_list_extract_with_camera2d(
+void entity_render_list_extract_with_camera2d(
     void* EXTRACT_RES,
     EntityRenderList* render_list,
     EntityStore* store,
@@ -67,7 +67,7 @@ void render2d_sort_for_each_camera2d(
     entity_render_list_sort_for_each_camera(crender_lists);
 }
 
-static void entity_render_for_each_camera2d(
+void entity_render_for_each_camera2d(
     void* RENDER_RES,
     CameraRenderLists* crender_lists,
     EntityCamera2DStore* camera_store,
@@ -84,7 +84,7 @@ static void entity_render_for_each_camera2d(
     }
 }
 
-void render2d_render_entities_on_each_render_target(
+void render2d_render_entities_on_each_render_target_except_window(
     void* RENDER_RES,
     RenderTargets* render_targets,
     CameraRenderLists* crender_lists,
@@ -96,6 +96,10 @@ void render2d_render_entities_on_each_render_target(
     for (usize i = 0; i < render_target_order_count; i++) {
         RenderTargetId active_render_target = render_target_order[i];
         RenderTarget* render_target = get_render_target(render_targets, active_render_target);
+        if (render_target->type == RENDER_TARGET_WINDOW) {
+            // NOTE: handle window drawing separately on raylib
+            continue;
+        }
         render_target_begin_render(render_target);
             entity_render_for_each_camera2d(
                 RENDER_RES,
@@ -105,4 +109,22 @@ void render2d_render_entities_on_each_render_target(
             );
         render_target_end_render();
     }
+}
+
+void render2d_render_entities_on_main_window_render_target(
+    void* RENDER_RES,
+    RenderTargets* render_targets,
+    CameraRenderLists* crender_lists,
+    EntityCamera2DStore* camera_store,
+    RenderTargetId main_window_render_target
+) {
+    RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
+    render_target_begin_render(render_target);
+        entity_render_for_each_camera2d(
+            RENDER_RES,
+            crender_lists,
+            camera_store,
+            main_window_render_target
+        );
+    render_target_end_render();
 }

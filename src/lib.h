@@ -15,7 +15,7 @@
 typedef struct {
     // --------
     struct {
-        URectSize size;
+        URectSize size; // 1920x1080
         const char* title;
         Color clear_color;
     } window;
@@ -23,6 +23,11 @@ typedef struct {
     struct {
         uint32 target_fps;
     } execution;
+    // --------
+    struct {
+        EntityStore_MakeFn entity_store_make_fn;
+        EntityRenderList_MakeFn entity_render_list_make_fn;
+    } functions;
     // --------
     struct {
         usize size;
@@ -39,6 +44,9 @@ typedef struct {
     // --------
     struct {
         URectSize render_screen_size; // 640x360
+        Color clear_color;
+        void* EXTRACT_RES;
+        void* RENDER_RES;
     } render2d;
     // --------
     bool use_network_subsystem;
@@ -64,10 +72,10 @@ typedef struct {
 
 typedef struct {
     float32 delta_time;
-    Color window_clear_color;
     URectSize window_size;
+    URectSize render_screen_size;
     // calculated, should match
-    Vector2 render_target_screen_ratio; // screen / render_target
+    Vector2 window_render_screen_ratio; // window / screen_texture
 } JustEngineFrameConstants;
 
 typedef struct {
@@ -78,17 +86,30 @@ typedef struct {
         bool should_close;
     } execution;
     // --------
+    struct {
+        EntityStore_MakeFn entity_store_make_fn;
+        EntityRenderList_MakeFn entity_render_list_make_fn;
+    } functions;
+    // --------
     BumpAllocator frame_storage;
     ThreadPool* threadpool;
     // -- Image/Texture
     FileImageServer file_image_server;
     TextureAssets texture_assets;
     Events_TextureAssetEvent texture_asset_events;
-    // -- Render Begin
-    RenderTargetTexture screen_render_target;
+    // -- Entity System
+    EntityStore entity_store;
+    // -- Render
+    RenderTargets render_targets;
+    struct {
+        usize count;
+        usize capacity;
+        RenderTargetId* order;
+    } render_target_order;
+    RenderTargetId main_window_render_target;
+    RenderTargetId render_screen_target;
     // -- Render2D
-    SpriteCameraStore camera_store;
-    SpriteStore sprite_store;
+    EntityCamera2DStore camera_store;
     // -- UI
     UIElementStore ui_store;
     // --------
@@ -96,8 +117,12 @@ typedef struct {
 
 typedef struct {
     // --------
-    // -- Render2D
-    PreparedRenderSprites prepared_render_sprites;
+    // -- Render
+    EntityRenderList render_list;
+    // -- 
+    void* EXTRACT_RES;
+    void* RENDER_RES;
+    CameraRenderLists crender_lists;
     // --------
 } JustEngineGlobalRenderResources;
 
@@ -109,6 +134,8 @@ void just_engine_deinit(JustEngineDeinit deinit);
 void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeinit* deinit);
 
 #define just_engine_mark_exit() (JUST_GLOBAL.execution.should_close = true)
+
+void just_engine_set_render_target_order(RenderTargetId* order, usize count);
 
 // ---------------------------
 
@@ -133,8 +160,9 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
  *      POST_UPDATE
  * 
  * RENDER
- *      QUEUE_RENDER
- *      EXTRACT_RENDER
+ *      PREPARE
+ *      QUEUE
+ *      EXTRACT
  *      RENDER
  * 
  * FRAME_END
@@ -148,8 +176,8 @@ void SYSTEM_FRAME_BEGIN_set_delta_time(
 );
 
 void SYSTEM_POST_UPDATE_camera_visibility(
-    SpriteCameraStore* sprite_camera_store,
-    SpriteStore* RES_sprite_store
+    EntityCamera2DStore* RES_camera_store,
+    EntityStore* RES_entity_store
 );
 
 void SYSTEM_POST_UPDATE_check_mutated_images(
@@ -157,7 +185,7 @@ void SYSTEM_POST_UPDATE_check_mutated_images(
     Events_TextureAssetEvent* RES_texture_asset_events
 );
 
-void SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images(
+void SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images(
     TextureAssets* RES_texture_assets,
     Events_TextureAssetEvent* RES_texture_asset_events
 );
@@ -198,22 +226,37 @@ void JUST_SYSTEM_POST_UPDATE_check_mutated_images();
 void JUST_SYSTEM_POST_UPDATE_camera_visibility();
 
 // -- RENDER --
-// -- -- QUEUE_RENDER --
-// -- -- EXTRACT_RENDER --
+// -- -- PREPARE --
 
-void JUST_SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images();
-void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites();
+void JUST_SYSTEM_RENDER_PREPARE_render2d();
+
+// -- -- QUEUE --
+// -- -- EXTRACT --
+
+void JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images();
+// void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites();
+void JUST_SYSTEM_RENDER_EXTRACT_render2d();
 
 // -- -- RENDER --
 
-void JUST_SYSTEM_RENDER_begin_drawing();
-void JUST_SYSTEM_RENDER_render2d();
-void JUST_SYSTEM_RENDER_end_drawing();
+void JUST_SYSTEM_RENDER_RENDER_render2d();
 
-void JUST_SYSTEM_RENDER_SCREEN_begin_drawing();
-void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements();
-void JUST_SYSTEM_RENDER_SCREEN_draw_imgui();
-void JUST_SYSTEM_RENDER_SCREEN_end_drawing();
+// void JUST_SYSTEM_RENDER_begin_drawing();
+// void JUST_SYSTEM_RENDER_render2d();
+// void JUST_SYSTEM_RENDER_end_drawing();
+
+// -- -- RENDER_SCREEN --
+
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_ui_elements();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_imgui();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_end_drawing();
+
+// void JUST_SYSTEM_RENDER_SCREEN_begin_drawing();
+// void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements();
+// void JUST_SYSTEM_RENDER_SCREEN_draw_imgui();
+// void JUST_SYSTEM_RENDER_SCREEN_end_drawing();
 
 // -- FRAME_END --
 

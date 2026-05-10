@@ -31,33 +31,44 @@ JustEngineGlobalResources JUST_GLOBAL = LAZY_INIT;
 JustEngineGlobalRenderResources JUST_RENDER_GLOBAL = LAZY_INIT;
 
 void just_engine_init(JustEngineInit init) {
-    RenderTexture screen_target = LoadRenderTexture(init.render2d.render_screen_size.width, init.render2d.render_screen_size.height);
-    SetTextureFilter(screen_target.texture, TEXTURE_FILTER_POINT);
+    RenderTargets render_targets = {0};
+    RenderTargetId window_target_id = create_render_target_window(&render_targets, init.window.title, init.window.size, init.window.clear_color);
+    RenderTargetId render_screen_target_id = create_render_target_texture(&render_targets, init.render2d.render_screen_size, init.render2d.clear_color);
+    {
+        RenderTarget* render_target = get_render_target(&render_targets, render_screen_target_id);
+        SetTextureFilter(render_target->target.texture.texture.texture, TEXTURE_FILTER_POINT);
+    }
 
     JUST_GLOBAL = (JustEngineGlobalResources) {
+        // --
         .frame_constants = {
             .delta_time = 0.0,
-            .window_clear_color = init.window.clear_color,
             .window_size = init.window.size,
-            .render_target_screen_ratio = LATER_INIT,
+            .render_screen_size = init.render2d.render_screen_size,
+            .window_render_screen_ratio = LATER_INIT,
         },
+        // --
         .frame_storage = make_bump_allocator_with_size(init.frame_storage.size),
         .threadpool = thread_pool_create(init.threadpool.nthreads, init.threadpool.task_queue_capacity),
+        // --
         .file_image_server = LATER_INIT,
         .texture_assets = new_texture_assets(),
         .texture_asset_events = TextureAssetEvent__events_create(),
-        .screen_render_target = {
-            .texture_size = init.render2d.render_screen_size,
-            .texture = screen_target,
-        },
-        .camera_store = STRUCT_ZERO_INIT,
-        .sprite_store = STRUCT_ZERO_INIT,
-        .ui_store = ui_element_store_new(),
+        // --
+        .entity_store = init.functions.entity_store_make_fn(),
+        // --
+        .render_targets = render_targets,
+        .render_target_order = LATER_INIT,
+        .main_window_render_target = window_target_id,
+        .render_screen_target = render_screen_target_id,
+        // --
+        .camera_store = make_entity_camera2d_store(),
+        // --
     };
 
-    JUST_GLOBAL.frame_constants.render_target_screen_ratio = (Vector2) {
-        .x = (float32) JUST_GLOBAL.frame_constants.window_size.width / JUST_GLOBAL.screen_render_target.texture_size.width,
-        .y = (float32) JUST_GLOBAL.frame_constants.window_size.height / JUST_GLOBAL.screen_render_target.texture_size.height,
+    JUST_GLOBAL.frame_constants.window_render_screen_ratio = (Vector2) {
+        .x = (float32) JUST_GLOBAL.frame_constants.window_size.width / JUST_GLOBAL.frame_constants.render_screen_size.width,
+        .y = (float32) JUST_GLOBAL.frame_constants.window_size.height / JUST_GLOBAL.frame_constants.render_screen_size.height,
     };
 
     JUST_GLOBAL.file_image_server = (FileImageServer) {
@@ -67,8 +78,20 @@ void just_engine_init(JustEngineInit init) {
         .asset_folder = init.dir.asset_dir,
     };
 
+    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.render_screen_target);
+    dynarray_push_back(JUST_GLOBAL.render_target_order, .order, JUST_GLOBAL.main_window_render_target);
+
     allocator_vtable_reserve(JUST_ENGINE_ALLOCATOR_IMPL_COUNT + init.vtable.user_allocator_impl_count);
     just_engine__allocator_vtable_add_entries();
+
+    // --
+
+    JUST_RENDER_GLOBAL = (JustEngineGlobalRenderResources) {
+        .render_list = LAZY_INIT,
+        .crender_lists = LAZY_INIT,
+        .EXTRACT_RES = init.render2d.EXTRACT_RES,
+        .RENDER_RES = init.render2d.RENDER_RES,
+    };
 }
 
 void just_engine_deinit(JustEngineDeinit deinit) {
@@ -88,14 +111,10 @@ static JustChapter* find_chapter(JustChapters* chapters, int32 chapter_id) {
 void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeinit* deinit) {
     #pragma region INITIALIZE
 
-    InitWindow(init.window.size.width, init.window.size.height, init.window.title);
+    just_engine_init(init); // InitWindow
+
     SetTargetFPS(init.execution.target_fps);
     SetWindowMonitor(GetMonitorCount()-1);
-    // if (!IsWindowFullscreen()) {
-    //     ToggleFullscreen();
-    // }
-
-    just_engine_init(init);
 
 	rligSetup(true);
 
@@ -149,6 +168,13 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
     #pragma endregion DEINITIALIZE
 }
 
+void just_engine_set_render_target_order(RenderTargetId* order, usize count) {
+    dynarray_clear(JUST_GLOBAL.render_target_order);
+    dynarray_reserve(JUST_GLOBAL.render_target_order, .order, count);
+    std_memcpy(JUST_GLOBAL.render_target_order.order, order, sizeof(order[0]) * count);
+    JUST_GLOBAL.render_target_order.count = count;
+}
+
 // ---------------------------
 
 void SYSTEM_FRAME_BEGIN_set_delta_time(
@@ -158,8 +184,8 @@ void SYSTEM_FRAME_BEGIN_set_delta_time(
 }
 
 void SYSTEM_POST_UPDATE_camera_visibility(
-    SpriteCameraStore* sprite_camera_store,
-    SpriteStore* RES_sprite_store
+    EntityCamera2DStore* RES_camera_store,
+    EntityStore* RES_entity_store
 ) {
     // TODO
 }
@@ -182,7 +208,7 @@ void SYSTEM_POST_UPDATE_check_mutated_images(
     }
 }
 
-void SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images(
+void SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images(
     TextureAssets* RES_texture_assets,
     Events_TextureAssetEvent* RES_texture_asset_events
 ) {
@@ -268,80 +294,145 @@ void JUST_SYSTEM_POST_UPDATE_check_mutated_images() {
 void JUST_SYSTEM_POST_UPDATE_camera_visibility() {
     SYSTEM_POST_UPDATE_camera_visibility(
         &JUST_GLOBAL.camera_store,
-        &JUST_GLOBAL.sprite_store
+        &JUST_GLOBAL.entity_store
     );
 }
 
 // -- RENDER --
 // -- -- PREPARE --
 
-void JUST_SYSTEM_RENDER_PREPARE
+void JUST_SYSTEM_RENDER_PREPARE_render2d() {
+    render2d_prepare_camera_render_lists(
+        &JUST_GLOBAL.camera_store,
+        &JUST_RENDER_GLOBAL.crender_lists,
+        JUST_GLOBAL.functions.entity_render_list_make_fn
+    );
+}
 
 // -- -- QUEUE --
 // -- -- EXTRACT --
 
 void JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images() {
-    SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images(
+    SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images(
         &JUST_GLOBAL.texture_assets,
         &JUST_GLOBAL.texture_asset_events
     );
 }
 
-void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites() {
-    SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites(
-        &JUST_GLOBAL.camera_store,
-        &JUST_GLOBAL.sprite_store,
-        &JUST_RENDER_GLOBAL.prepared_render_sprites
+void JUST_SYSTEM_RENDER_EXTRACT_render2d() {
+    render2d_extract_for_each_camera2d(
+        JUST_RENDER_GLOBAL.EXTRACT_RES,
+        &JUST_RENDER_GLOBAL.crender_lists,
+        &JUST_GLOBAL.entity_store,
+        &JUST_GLOBAL.camera_store
     );
 }
+
+// void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites() {
+//     SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites(
+//         &JUST_GLOBAL.camera_store,
+//         &JUST_GLOBAL.sprite_store,
+//         &JUST_RENDER_GLOBAL.prepared_render_sprites
+//     );
+// }
 
 // -- -- RENDER --
 
-void JUST_SYSTEM_RENDER_begin_drawing() {
-    // pass
-}
-
-void JUST_SYSTEM_RENDER_render2d() {
-    SYSTEM_RENDER_render2d_render_sprites(
-        &JUST_GLOBAL.texture_assets,
-        &JUST_GLOBAL.sprite_store,
+void JUST_SYSTEM_RENDER_RENDER_render2d() {
+    render2d_render_entities_on_each_render_target_except_window(
+        JUST_RENDER_GLOBAL.RENDER_RES,
+        &JUST_GLOBAL.render_targets,
+        &JUST_RENDER_GLOBAL.crender_lists,
         &JUST_GLOBAL.camera_store,
-        &JUST_RENDER_GLOBAL.prepared_render_sprites
+        JUST_GLOBAL.render_target_order.order,
+        JUST_GLOBAL.render_target_order.count
     );
 }
 
-void JUST_SYSTEM_RENDER_end_drawing() {
-    // pass
+// -- -- RENDER_SCREEN --
+
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing() {
+    RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+    RenderTargetId main_window_render_target = JUST_GLOBAL.main_window_render_target;
+
+    RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
+    render_target_begin_render(render_target);
 }
 
-void JUST_SYSTEM_RENDER_SCREEN_begin_drawing() {
-    BeginDrawing();
-        ClearBackground(JUST_GLOBAL.frame_constants.window_clear_color);
-        Texture texture = JUST_GLOBAL.screen_render_target.texture.texture;
-        URectSize screen_size = JUST_GLOBAL.frame_constants.window_size;
-        DrawTexturePro(
-            texture,
-            (Rectangle) { 0, 0, (float)texture.width, (float)-texture.height },
-            (Rectangle) { 0, 0, (float)screen_size.width, (float)screen_size.height },
-            (Vector2) { 0, 0 },
-            0,
-            WHITE
-        );
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d() {
+    void* RENDER_RES = JUST_RENDER_GLOBAL.RENDER_RES;
+    RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+    CameraRenderLists* crender_lists = &JUST_RENDER_GLOBAL.crender_lists;
+    EntityCamera2DStore* camera_store = &JUST_GLOBAL.camera_store;
+    RenderTargetId main_window_render_target = JUST_GLOBAL.main_window_render_target;
+
+    entity_render_for_each_camera2d(
+        RENDER_RES,
+        crender_lists,
+        camera_store,
+        main_window_render_target
+    );
 }
 
-void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements() {
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_ui_elements() {
     SYSTEM_RENDER_draw_ui_elements(
         &JUST_GLOBAL.ui_store
     );
 }
 
-void JUST_SYSTEM_RENDER_SCREEN_draw_imgui() {
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_imgui() {
     rligEnd();
 }
 
-void JUST_SYSTEM_RENDER_SCREEN_end_drawing() {
-    EndDrawing();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_end_drawing() {
+    render_target_end_render();
 }
+
+// void JUST_SYSTEM_RENDER_begin_drawing() {
+//     // pass
+// }
+
+// void JUST_SYSTEM_RENDER_render2d() {
+//     SYSTEM_RENDER_render2d_render_sprites(
+//         &JUST_GLOBAL.texture_assets,
+//         &JUST_GLOBAL.sprite_store,
+//         &JUST_GLOBAL.camera_store,
+//         &JUST_RENDER_GLOBAL.prepared_render_sprites
+//     );
+// }
+
+// void JUST_SYSTEM_RENDER_end_drawing() {
+//     // pass
+// }
+
+// void JUST_SYSTEM_RENDER_SCREEN_begin_drawing() {
+//     BeginDrawing();
+//         ClearBackground(JUST_GLOBAL.frame_constants.window_clear_color);
+//         Texture texture = JUST_GLOBAL.screen_render_target.texture.texture;
+//         URectSize screen_size = JUST_GLOBAL.frame_constants.window_size;
+//         DrawTexturePro(
+//             texture,
+//             (Rectangle) { 0, 0, (float)texture.width, (float)-texture.height },
+//             (Rectangle) { 0, 0, (float)screen_size.width, (float)screen_size.height },
+//             (Vector2) { 0, 0 },
+//             0,
+//             WHITE
+//         );
+// }
+
+// void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements() {
+//     SYSTEM_RENDER_draw_ui_elements(
+//         &JUST_GLOBAL.ui_store
+//     );
+// }
+
+// void JUST_SYSTEM_RENDER_SCREEN_draw_imgui() {
+//     rligEnd();
+// }
+
+// void JUST_SYSTEM_RENDER_SCREEN_end_drawing() {
+//     EndDrawing();
+// }
 
 // -- FRAME_END --
 
@@ -452,51 +543,67 @@ void APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(JustAppBuilder* app_builder) {
     }
     
     // =====
+    STAGE = CORE_STAGE__RENDER__PREPARE;
+    {
+        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_PREPARE_render2d));
+    }
+    
     STAGE = CORE_STAGE__RENDER__QUEUE;
 
     STAGE = CORE_STAGE__RENDER__EXTRACT;
     {
-        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images));
-        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites));
+        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images));
+        // just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites));
+        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_EXTRACT_render2d));
     }
 
     STAGE = CORE_STAGE__RENDER__RENDER;
     {
-        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_begin_drawing), (SystemConstraint) { .run_first = true });
-        just_app_builder_add_system_with(app_builder, STAGE,
-            fn_into_system(JUST_SYSTEM_RENDER_render2d),
-            (SystemConstraint) {
-                .run_after = {
-                    .count = 1,
-                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_begin_drawing) },
-                },
-            }
-        );
-        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_end_drawing), (SystemConstraint) { .run_last = true });
+        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_RENDER_render2d));
+        // just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_begin_drawing), (SystemConstraint) { .run_first = true });
+        // just_app_builder_add_system_with(app_builder, STAGE,
+        //     fn_into_system(JUST_SYSTEM_RENDER_render2d),
+        //     (SystemConstraint) {
+        //         .run_after = {
+        //             .count = 1,
+        //             .systems = { fn_into_system(JUST_SYSTEM_RENDER_begin_drawing) },
+        //         },
+        //     }
+        // );
+        // just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_end_drawing), (SystemConstraint) { .run_last = true });
     }
 
     STAGE = CORE_STAGE__RENDER__RENDER_SCREEN;
     {
-        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_SCREEN_begin_drawing), (SystemConstraint) { .run_first = true });
+        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing), (SystemConstraint) { .run_first = true });
         just_app_builder_add_system_with(app_builder, STAGE,
-            fn_into_system(JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements),
+            fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d),
             (SystemConstraint) {
                 .run_after = {
                     .count = 1,
-                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_SCREEN_begin_drawing) },
+                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing) },
                 },
             }
         );
         just_app_builder_add_system_with(app_builder, STAGE,
-            fn_into_system(JUST_SYSTEM_RENDER_SCREEN_draw_imgui),
+            fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_ui_elements),
             (SystemConstraint) {
                 .run_after = {
                     .count = 1,
-                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements) },
+                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d) },
                 },
             }
         );
-        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_SCREEN_end_drawing), (SystemConstraint) { .run_last = true });
+        just_app_builder_add_system_with(app_builder, STAGE,
+            fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_imgui),
+            (SystemConstraint) {
+                .run_after = {
+                    .count = 1,
+                    .systems = { fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_ui_elements) },
+                },
+            }
+        );
+        just_app_builder_add_system_with(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_RENDER_SCREEN_end_drawing), (SystemConstraint) { .run_last = true });
     }
     
     // =====

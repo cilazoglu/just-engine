@@ -3905,121 +3905,6 @@ void camera2d_end_render();
 
 #endif // __HEADER_RENDER_CAMERA2D
 
-#define NO__HEADER_RENDER_SPRITE
-#ifdef __HEADER_RENDER_SPRITE
-
-typedef EntityId SpriteEntityId;
-
-typedef enum {
-    Rotation_CW = 1,
-    Rotation_CCW = -1,
-} RotationWay;
-
-typedef struct {
-    Anchor anchor;
-    Vector2 position;       // position of the anchor
-    bool use_source_size;
-    Vector2 size;
-    Vector2 scale;
-    float32 rotation;       // rotation around its anchor
-    RotationWay rway;
-} SpriteTransform;
-
-typedef struct {
-    bool render_anchor;
-    uint32 render_anchor_radius;
-    Color render_anchor_color;
-    bool render_frame;
-    uint32 render_frame_thickness;
-    Color render_frame_color;
-} SpriteDebugRenderOptions;
-
-typedef struct {
-    // -- render start
-    TextureHandle texture;
-    Color tint;
-    bool use_custom_source;
-    Rectangle source;
-    bool flip_x;
-    bool flip_y;
-    uint32 z_index;
-    // -- render end
-    bool use_layer_system; // otherwise renders on the primary camera by default
-    Layers layers;
-    bool visible;
-    bool camera_visible;
-    SpriteDebugRenderOptions debug_render_options;
-} Sprite;
-
-// typedef struct {
-//     TextureHandle texture;
-//     Color tint;
-//     bool use_custom_source;
-//     Rectangle source;
-//     bool flip_x;
-//     bool flip_y;
-//     SpriteTransform transform;
-//     uint32 z_index;
-// } RenderSprite;
-
-typedef struct {
-    SpriteEntityId sprite_entity;
-    uint32 z_index;
-} RenderSprite;
-
-typedef struct {
-    usize count;
-    usize capacity;
-    RenderSprite* sprites;
-} SortedRenderSprites;
-
-typedef struct {
-    uint32 camera_index;
-    uint32 sort_index;
-} CameraSortElem;
-
-typedef struct {
-    usize count; // camera_count
-    usize capacity;
-    CameraSortElem* camera_render_order;
-    SortedRenderSprites* render_sprites; // out of order, render based on .camera_render_order
-} PreparedRenderSprites;
-
-typedef struct {
-    usize count;
-    usize capacity;
-    usize free_count;
-    bool* slot_occupied;
-    usize* generations;
-    SpriteTransform* transforms;
-    Sprite* sprites;
-} SpriteStore;
-
-SpriteEntityId spawn_sprite(
-    SpriteStore* sprite_store,
-    SpriteTransform transform,
-    Sprite sprite
-);
-void despawn_sprite(SpriteStore* sprite_store, SpriteEntityId sprite_id);
-bool sprite_is_valid(SpriteStore* sprite_store, SpriteEntityId sprite_id);
-
-void destroy_sprite_store(SpriteStore* sprite_store);
-
-void SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites(
-    SpriteCameraStore* sprite_camera_store,
-    SpriteStore* sprite_store,
-    PreparedRenderSprites* prepared_render_sprites
-);
-
-void SYSTEM_RENDER_render2d_render_sprites(
-    TextureAssets* RES_texture_assets,
-    SpriteStore* RES_sprite_store,
-    SpriteCameraStore* RES_sprite_camera_store,
-    PreparedRenderSprites* RENDER_RES_prepared_render_sprites
-);
-
-#endif // __HEADER_RENDER_SPRITE
-
 #define __HEADER_RENDER_ENTITY
 #ifdef __HEADER_RENDER_ENTITY
 
@@ -4033,7 +3918,7 @@ typedef struct {
 #define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN((key).generation))
 #define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD((key).generation))
 static inline EntityKey invalid_entity_key() {
-    return (EntityKey) { .index = JUST_USIZE_MAX };
+    return (EntityKey) { .index = JUST_USIZE_MAX, .generation = 0 };
 }
 
 typedef struct {
@@ -4077,6 +3962,7 @@ bool entity_is_valid(EntityStore* store, EntityKey key);
 EntityBase* get_entity(EntityStore* store, EntityKey key);
 EntityBase* get_entity_checked(EntityStore* store, EntityKey key);
 EntityKey get_entity_key(EntityStore* store, EntityBase* entity);
+EntityKey get_entity_key_checked(EntityStore* store, EntityBase* entity);
 bool despawn_entity(EntityStore* store, EntityKey key);
 
 #define make_uniform_entity_store(EntityType, capacity) make_entity_store(sizeof(EntityType), (capacity))
@@ -4183,7 +4069,55 @@ void entity_render_list_sort_for_each_camera(CameraRenderLists* crender_lists);
 #define __HEADER_RENDER_RENDER2D
 #ifdef __HEADER_RENDER_RENDER2D
 
+void render2d_prepare_camera_render_lists(
+    EntityCamera2DStore* camera_store,
+    CameraRenderLists* crender_lists,
+    EntityRenderList_MakeFn entity_render_list_make_fn
+);
 
+void entity_render_list_extract_with_camera2d(
+    void* EXTRACT_RES,
+    EntityRenderList* render_list,
+    EntityStore* store,
+    CameraId camera_id,
+    EntityCamera2D* entity_camera
+);
+
+void render2d_extract_for_each_camera2d(
+    void* EXTRACT_RES,
+    CameraRenderLists* crender_lists,
+    EntityStore* store,
+    EntityCamera2DStore* camera_store
+);
+
+void render2d_sort_for_each_camera2d(
+    CameraRenderLists* crender_lists
+);
+
+void entity_render_for_each_camera2d(
+    void* RENDER_RES,
+    CameraRenderLists* crender_lists,
+    EntityCamera2DStore* camera_store,
+    RenderTargetId active_render_target
+);
+
+void render2d_render_entities_on_each_render_target_except_window(
+    void* RENDER_RES,
+    RenderTargets* render_targets,
+    CameraRenderLists* crender_lists,
+    EntityCamera2DStore* camera_store,
+    // --
+    RenderTargetId* render_target_order,
+    usize render_target_order_count
+);
+
+void render2d_render_entities_on_main_window_render_target(
+    void* RENDER_RES,
+    RenderTargets* render_targets,
+    CameraRenderLists* crender_lists,
+    EntityCamera2DStore* camera_store,
+    RenderTargetId main_window_render_target
+);
 
 #endif // __HEADER_RENDER_RENDER2D
 
@@ -4435,13 +4369,13 @@ JustApp BUILD_APP();
 
 #endif // __HEADER_EXECUTION_EXECUTION
 
-#define NO__HEADER_LIB
+#define __HEADER_LIB
 #ifdef __HEADER_LIB
 
 typedef struct {
     // --------
     struct {
-        URectSize size;
+        URectSize size; // 1920x1080
         const char* title;
         Color clear_color;
     } window;
@@ -4449,6 +4383,11 @@ typedef struct {
     struct {
         uint32 target_fps;
     } execution;
+    // --------
+    struct {
+        EntityStore_MakeFn entity_store_make_fn;
+        EntityRenderList_MakeFn entity_render_list_make_fn;
+    } functions;
     // --------
     struct {
         usize size;
@@ -4465,6 +4404,9 @@ typedef struct {
     // --------
     struct {
         URectSize render_screen_size; // 640x360
+        Color clear_color;
+        void* EXTRACT_RES;
+        void* RENDER_RES;
     } render2d;
     // --------
     bool use_network_subsystem;
@@ -4490,10 +4432,10 @@ typedef struct {
 
 typedef struct {
     float32 delta_time;
-    Color window_clear_color;
     URectSize window_size;
+    URectSize render_screen_size;
     // calculated, should match
-    Vector2 render_target_screen_ratio; // screen / render_target
+    Vector2 window_render_screen_ratio; // window / screen_texture
 } JustEngineFrameConstants;
 
 typedef struct {
@@ -4504,17 +4446,30 @@ typedef struct {
         bool should_close;
     } execution;
     // --------
+    struct {
+        EntityStore_MakeFn entity_store_make_fn;
+        EntityRenderList_MakeFn entity_render_list_make_fn;
+    } functions;
+    // --------
     BumpAllocator frame_storage;
     ThreadPool* threadpool;
     // -- Image/Texture
     FileImageServer file_image_server;
     TextureAssets texture_assets;
     Events_TextureAssetEvent texture_asset_events;
-    // -- Render Begin
-    RenderTargetTexture screen_render_target;
+    // -- Entity System
+    EntityStore entity_store;
+    // -- Render
+    RenderTargets render_targets;
+    struct {
+        usize count;
+        usize capacity;
+        RenderTargetId* order;
+    } render_target_order;
+    RenderTargetId main_window_render_target;
+    RenderTargetId render_screen_target;
     // -- Render2D
-    SpriteCameraStore camera_store;
-    SpriteStore sprite_store;
+    EntityCamera2DStore camera_store;
     // -- UI
     UIElementStore ui_store;
     // --------
@@ -4522,8 +4477,12 @@ typedef struct {
 
 typedef struct {
     // --------
-    // -- Render2D
-    PreparedRenderSprites prepared_render_sprites;
+    // -- Render
+    EntityRenderList render_list;
+    // -- 
+    void* EXTRACT_RES;
+    void* RENDER_RES;
+    CameraRenderLists crender_lists;
     // --------
 } JustEngineGlobalRenderResources;
 
@@ -4535,6 +4494,8 @@ void just_engine_deinit(JustEngineDeinit deinit);
 void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeinit* deinit);
 
 #define just_engine_mark_exit() (JUST_GLOBAL.execution.should_close = true)
+
+void just_engine_set_render_target_order(RenderTargetId* order, usize count);
 
 // ---------------------------
 
@@ -4559,8 +4520,9 @@ void just_engine_run(JustChapters chapters, JustEngineInit init, JustEngineDeini
  *      POST_UPDATE
  * 
  * RENDER
- *      QUEUE_RENDER
- *      EXTRACT_RENDER
+ *      PREPARE
+ *      QUEUE
+ *      EXTRACT
  *      RENDER
  * 
  * FRAME_END
@@ -4574,8 +4536,8 @@ void SYSTEM_FRAME_BEGIN_set_delta_time(
 );
 
 void SYSTEM_POST_UPDATE_camera_visibility(
-    SpriteCameraStore* sprite_camera_store,
-    SpriteStore* RES_sprite_store
+    EntityCamera2DStore* RES_camera_store,
+    EntityStore* RES_entity_store
 );
 
 void SYSTEM_POST_UPDATE_check_mutated_images(
@@ -4583,7 +4545,7 @@ void SYSTEM_POST_UPDATE_check_mutated_images(
     Events_TextureAssetEvent* RES_texture_asset_events
 );
 
-void SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images(
+void SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images(
     TextureAssets* RES_texture_assets,
     Events_TextureAssetEvent* RES_texture_asset_events
 );
@@ -4624,22 +4586,37 @@ void JUST_SYSTEM_POST_UPDATE_check_mutated_images();
 void JUST_SYSTEM_POST_UPDATE_camera_visibility();
 
 // -- RENDER --
-// -- -- QUEUE_RENDER --
-// -- -- EXTRACT_RENDER --
+// -- -- PREPARE --
 
-void JUST_SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images();
-void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites();
+void JUST_SYSTEM_RENDER_PREPARE_render2d();
+
+// -- -- QUEUE --
+// -- -- EXTRACT --
+
+void JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images();
+// void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites();
+void JUST_SYSTEM_RENDER_EXTRACT_render2d();
 
 // -- -- RENDER --
 
-void JUST_SYSTEM_RENDER_begin_drawing();
-void JUST_SYSTEM_RENDER_render2d();
-void JUST_SYSTEM_RENDER_end_drawing();
+void JUST_SYSTEM_RENDER_RENDER_render2d();
 
-void JUST_SYSTEM_RENDER_SCREEN_begin_drawing();
-void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements();
-void JUST_SYSTEM_RENDER_SCREEN_draw_imgui();
-void JUST_SYSTEM_RENDER_SCREEN_end_drawing();
+// void JUST_SYSTEM_RENDER_begin_drawing();
+// void JUST_SYSTEM_RENDER_render2d();
+// void JUST_SYSTEM_RENDER_end_drawing();
+
+// -- -- RENDER_SCREEN --
+
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_begin_drawing();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_render2d();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_ui_elements();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_draw_imgui();
+void JUST_SYSTEM_RENDER_RENDER_SCREEN_end_drawing();
+
+// void JUST_SYSTEM_RENDER_SCREEN_begin_drawing();
+// void JUST_SYSTEM_RENDER_SCREEN_draw_ui_elements();
+// void JUST_SYSTEM_RENDER_SCREEN_draw_imgui();
+// void JUST_SYSTEM_RENDER_SCREEN_end_drawing();
 
 // -- FRAME_END --
 

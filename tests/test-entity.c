@@ -220,285 +220,71 @@ void render_entity(void* RENDER_RES, RenderEntityBase* render_entity) {
     }
 }
 
-// --
-#define PRIMARY_CAMERA_ID 0
-typedef usize CameraId;
-
-typedef struct {
-    CameraId id;
-    uint8 sort_index;
-    // --
-    Camera2D camera;
-    RenderTargetId target;
-    Layers layers;
-} EntityCamera2D;
-
-typedef struct {
-    usize count;
-    usize capacity;
-    usize primary_camera_index;
-    EntityCamera2D* cameras;
-} EntityCamera2DStore;
-
-EntityCamera2DStore make_entity_camera2d_store() {
-    EntityCamera2DStore store = {0};
-    return store;
+EntityStore game_make_entity_store() {
+    return make_uniform_entity_store(GameEntity, 1);
 }
 
-void destroy_entity_camera2d_store(EntityCamera2DStore* store) {
-    dynarray_free(*store, .cameras);
-}
-
-EntityCamera2D* get_primary_entity_camera2d(EntityCamera2DStore* store) {
-    EntityCamera2D* primary_camera = &store->cameras[store->primary_camera_index];
-    return primary_camera->id == PRIMARY_CAMERA_ID ? primary_camera : NULL;
-}
-
-void set_primary_entity_camera2d(EntityCamera2DStore* store, EntityCamera2D camera) {
-    camera.id = PRIMARY_CAMERA_ID;
-
-    if (store->count == 0) {
-        store->primary_camera_index = 0;
-        dynarray_push_back(*store, .cameras, camera);
-        return;
-    }
-
-    EntityCamera2D* primary_camera = get_primary_entity_camera2d(store);
-    if (primary_camera != NULL) {
-        *primary_camera = camera;
-        return;
-    }
-
-    // unsorted insert, but should be sorted before render
-    store->primary_camera_index = store->count;
-    dynarray_push_back(*store, .cameras, camera);
-}
-
-EntityCamera2D* get_entity_camera2d(EntityCamera2DStore* store, CameraId camera_id) {
-    for (usize i = 0; i < store->count; i++) {
-        EntityCamera2D* camera_i = &store->cameras[i];
-        if (camera_id == camera_i->id) {
-            return camera_i;
-        }
-    }
-    return NULL; 
-}
-
-void add_entity_camera2d(EntityCamera2DStore* store, EntityCamera2D camera) {
-    ASSERT(camera.id != PRIMARY_CAMERA_ID); // use set_primary_entity_camera2d
-    for (usize i = 0; i < store->count; i++) {
-        if (store->cameras[i].sort_index <= camera.sort_index) {
-            dynarray_insert(*store, i, .cameras, camera);
-            if (i <= store->primary_camera_index) {
-                store->primary_camera_index++;
-            }
-            return;
-        }
-    }
-    dynarray_push_back(*store, .cameras, camera);
-}
-
-void sort_entity_camera2d_store(EntityCamera2DStore* store) {
-    if (store->count == 0) {
-        return;
-    }
-
-    EntityCamera2D temp;
-    bool no_swap_done = true;
-    for (usize begin = 0; begin < store->count - 1; begin++) {
-        no_swap_done = true;
-        for (usize i = store->count - 1; i > begin; i--) {
-            if (store->cameras[i].sort_index < store->cameras[i-1].sort_index) {
-                // swap
-                temp = store->cameras[i];
-                store->cameras[i] = store->cameras[i-1];
-                store->cameras[i-1] = temp;
-                no_swap_done = false;
-            }
-            if (i == begin+1) {
-                break;
-            }
-        }
-        if (no_swap_done) {
-            break;
-        }
-    }
-
-    EntityCamera2D* primary_camera = get_entity_camera2d(store, PRIMARY_CAMERA_ID);
-    if (primary_camera != NULL) {
-        store->primary_camera_index = (usize)primary_camera - (usize)store->cameras;
-    }
-}
-// --
-
-typedef struct {
-    CameraId camera_id;
-    EntityRenderList render_list;
-} CameraRenderList;
-
-typedef struct {
-    usize count; // == camera_count
-    usize capacity;
-    CameraRenderList* items;
-} CameraRenderLists;
-
-void entity_camera2d_store_prepare_for_render(EntityCamera2DStore* camera_store, CameraRenderLists* crender_lists) {
-    if (crender_lists->count < camera_store->count) {
-        usize reserve_count = camera_store->count - crender_lists->count;
-        dynarray_reserve(*crender_lists, .items, reserve_count);
-
-        for (usize i = 0; i < camera_store->count; i++) {
-            crender_lists->items[i].camera_id = camera_store->cameras[i].id;
-        }
-        for (usize i = crender_lists->count; i < camera_store->count; i++) {
-            crender_lists->items[i].render_list = make_uniform_entity_render_list(GameRenderEntity, 10, extract_entity, render_entity);
-        }
-        crender_lists->count = camera_store->count;
-    }
-}
-
-void entity_render_list_extract_with_entity_camera2d(
-    TextureAssets* RES_texture_assets,
-    EntityRenderList* render_list,
-    EntityStore* store,
-    CameraId camera_id,
-    EntityCamera2D* entity_camera
-) {
-    GameEntityExtractRes EXTRACT_RES = {
-        .texture_assets = RES_texture_assets,
-    };
-
-    EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
-    EntityBase* entity = NULL;
-    while ((entity = next_entity(&store_iter)) != NULL) {
-        entity->__internal__.render_decided = false;
-        if (
-            entity->visible
-            && (
-                (!entity->use_layer_system && camera_id == PRIMARY_CAMERA_ID)
-                || (entity->use_layer_system && check_layer_overlap(entity->layers, entity_camera->layers))
-            )
-        ) {
-            entity->__internal__.render_decided = true;
-        }
-    }
-    entity_render_list_extract_base(render_list, store, &EXTRACT_RES);
-}
-
-void entity_render_extract_for_each_entity_camera2d(
-    TextureAssets* RES_texture_assets,
-    CameraRenderLists* crender_lists,
-    EntityStore* store,
-    EntityCamera2DStore* camera_store
-) {
-    for (usize i = 0; i < crender_lists->count; i++) {
-        CameraRenderList* crender_list = &crender_lists->items[i];
-        CameraId camera_id = crender_list->camera_id;
-        EntityCamera2D* camera = get_entity_camera2d(camera_store, camera_id);
-        entity_render_list_extract_with_entity_camera2d(RES_texture_assets, &crender_list->render_list, store, camera_id, camera);
-    }
-}
-
-void entity_render_sort_for_each_entity_camera2d(CameraRenderLists* crender_lists) {
-    for (usize i = 0; i < crender_lists->count; i++) {
-        CameraRenderList* crender_list = &crender_lists->items[i];
-        entity_render_list_sort(&crender_list->render_list);
-    }
-}
-
-void entity_render2d_begin_camera_render(EntityCamera2D* entity_camera) {
-    BeginMode2D(entity_camera->camera);
-}
-
-void entity_render2d_end_camera_render() {
-    EndMode2D();
-}
-
-void entity_render_for_each_entity_camera2d(
-    TextureAssets* RES_texture_assets,
-    CameraRenderLists* crender_lists,
-    EntityCamera2DStore* camera_store,
-    RenderTargetId active_render_target
-) {
-    GameEntityRenderRes RENDER_RES = {
-        .texture_assets = RES_texture_assets,
-    };
-    for (usize i = 0; i < crender_lists->count; i++) {
-        CameraRenderList* crender_list = &crender_lists->items[i];
-        EntityCamera2D* camera = get_entity_camera2d(camera_store, crender_list->camera_id);
-        if (camera->target == active_render_target) {
-            entity_render2d_begin_camera_render(camera);
-                entity_render_list_render(&crender_list->render_list, &RENDER_RES);
-            entity_render2d_end_camera_render();
-        }
-    }
-}
-
-static RenderTargetType RENDER2D_CURRENT_RENDER_TARGET_TYPE = -1;
-
-void entity_render2d_begin_render_target_render(RenderTarget* render_target) {
-    RENDER2D_CURRENT_RENDER_TARGET_TYPE = render_target->type;
-
-    switch (RENDER2D_CURRENT_RENDER_TARGET_TYPE) {
-    case RENDER_TARGET_WINDOW:
-        RenderTargetWindow* render_target_window = &render_target->target.window;
-        BeginDrawing();
-        ClearBackground(render_target_window->clear_color);
-        break;
-    case RENDER_TARGET_TEXTURE:
-        RenderTargetTexture* render_target_texture = &render_target->target.texture;
-        BeginTextureMode(render_target_texture->texture);
-        ClearBackground(render_target_texture->clear_color);
-        break;
-    default:
-        PANIC("Unsupported RenderTargetType.");
-    }
-}
-
-void entity_render2d_end_render_target_render() {
-    switch (RENDER2D_CURRENT_RENDER_TARGET_TYPE) {
-    case RENDER_TARGET_WINDOW:
-        EndDrawing();
-        break;
-    case RENDER_TARGET_TEXTURE:
-        EndTextureMode();
-        break;
-    default:
-        PANIC("Unsupported RenderTargetType.");
-    }
-
-    RENDER2D_CURRENT_RENDER_TARGET_TYPE = -1;
-}
-
-static RenderTargetId WINDOW_RENDER_TARGET;
-static RenderTargetId SCREEN_TEXTURE_TARGET;
-
-void render_entities_on_each_render_target(
-    TextureAssets* RES_texture_assets,
-    RenderTargets* render_targets,
-    CameraRenderLists* crender_lists,
-    EntityCamera2DStore* camera_store
-) {
-    RenderTargetId RENDER_TARGET_ORDER[] = {
-        SCREEN_TEXTURE_TARGET,
-        WINDOW_RENDER_TARGET,
-    };
-
-    for (usize i = 0; i < ARRAY_LENGTH(RENDER_TARGET_ORDER); i++) {
-        RenderTargetId active_render_target = RENDER_TARGET_ORDER[i];
-        RenderTarget* render_target = get_render_target(render_targets, active_render_target);
-        entity_render2d_begin_render_target_render(render_target);
-            entity_render_for_each_entity_camera2d(
-                RES_texture_assets,
-                crender_lists,
-                camera_store,
-                active_render_target
-            );
-        entity_render2d_end_render_target_render();
-    }
+EntityRenderList game_make_entity_render_list() {
+    return make_uniform_entity_render_list(GameEntity, 1, extract_entity, render_entity);
 }
 
 int main_2() {
+    
+    just_engine_init((JustEngineInit) {
+        // --------
+        .window = {
+            .size = { 1000, 1000 },
+            .title = "test",
+            .clear_color = WHITE,
+        },
+        // --------
+        .execution = {
+            .target_fps = 60,
+        },
+        // --------
+        .functions = {
+            .entity_store_make_fn = game_make_entity_store,
+            .entity_render_list_make_fn = game_make_entity_render_list,
+        },
+        // --------
+        .frame_storage = {
+            .size = 1024 * 10,
+        },
+        // --------
+        .threadpool = {
+            .nthreads = 4,
+            .task_queue_capacity = 100,
+        },
+        // --------
+        .dir = {
+            .asset_dir = "",
+        },
+        // --------
+        .render2d = {
+            .render_screen_size = { 1000, 1000 },
+            .clear_color = GRAY,
+            .EXTRACT_RES = EXT
+        }
+        struct {
+            URectSize render_screen_size; // 640x360
+            Color clear_color;
+            void* EXTRACT_RES;
+            void* RENDER_RES;
+        } render2d;
+        // --------
+        bool use_network_subsystem;
+        struct {
+            NetworkConfig config;
+        } network;
+        // --------
+        bool use_http_client_subsystem;
+        // --------
+        struct {
+            usize user_allocator_impl_count;
+        } vtable;
+        // --------
+    });
+
     RenderTargets RENDER_TARGETS = {0};
 
     URectSize window_size = { 1000, 1000 };
