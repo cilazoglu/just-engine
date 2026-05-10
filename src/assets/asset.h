@@ -40,6 +40,7 @@ TextureAssets new_texture_assets();
 TextureHandle texture_assets_reserve_texture_slot(TextureAssets* assets);
 
 void texture_assets_put_image(TextureAssets* assets, TextureHandle handle, Image image);
+void texture_assets_put_texture(TextureAssets* assets, TextureHandle handle, Texture texture);
 void texture_assets_load_image_unchecked(TextureAssets* assets, TextureHandle handle);
 void texture_assets_load_texture_uncheched(TextureAssets* assets, TextureHandle handle);
 void texture_assets_update_texture_unchecked(TextureAssets* assets, TextureHandle handle);

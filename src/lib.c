@@ -13,7 +13,7 @@
 #include "memory/allocator.h"
 #include "assets/asset.h"
 #include "events/events.h"
-#include "render2d/sprite.h"
+#include "render/render2d.h"
 
 #include "lib.h"
 
@@ -273,10 +273,14 @@ void JUST_SYSTEM_POST_UPDATE_camera_visibility() {
 }
 
 // -- RENDER --
-// -- -- QUEUE_RENDER --
-// -- -- EXTRACT_RENDER --
+// -- -- PREPARE --
 
-void JUST_SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images() {
+void JUST_SYSTEM_RENDER_PREPARE
+
+// -- -- QUEUE --
+// -- -- EXTRACT --
+
+void JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images() {
     SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images(
         &JUST_GLOBAL.texture_assets,
         &JUST_GLOBAL.texture_asset_events
@@ -448,9 +452,9 @@ void APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(JustAppBuilder* app_builder) {
     }
     
     // =====
-    STAGE = CORE_STAGE__RENDER__QUEUE_RENDER;
+    STAGE = CORE_STAGE__RENDER__QUEUE;
 
-    STAGE = CORE_STAGE__RENDER__EXTRACT_RENDER;
+    STAGE = CORE_STAGE__RENDER__EXTRACT;
     {
         just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_load_textures_for_loaded_or_changed_images));
         just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites));

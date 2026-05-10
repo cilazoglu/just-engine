@@ -5,8 +5,10 @@
 #include "assets/assetserver.h"
 #include "network/net2.h"
 #include "network/httpclient.h"
-#include "render2d/camera2d.h"
-#include "render2d/sprite.h"
+#include "render/camera.h"
+#include "render/camera2d.h"
+#include "render/rendertarget.h"
+#include "render/entity.h"
 #include "ui/justui.h"
 #include "execution/execution.h"
 

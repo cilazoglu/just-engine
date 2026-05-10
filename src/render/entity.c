@@ -136,11 +136,28 @@ EntityBase* get_entity_checked(EntityStore* store, EntityKey key) {
 
 EntityKey get_entity_key(EntityStore* store, EntityBase* entity) {
     byte* entity_data = (byte*) entity;
+    
+    usize data_offset = (usize)entity_data - (usize)store->data;
+
+    usize data_index = data_offset / store->data_layout.size;
+
+    usize index = store->erase[data_index];
+    usize generation = store->indices[index].generation;
+    EntityKey entity_key = {
+        .index = index,
+        .generation = generation,
+    };
+
+    return entity_key;
+}
+
+EntityKey get_entity_key_checked(EntityStore* store, EntityBase* entity) {
+    byte* entity_data = (byte*) entity;
     if (entity_data < store->data) {
         return invalid_entity_key();
     }
 
-    usize data_offset = (usize)(store->data - entity_data);
+    usize data_offset = (usize)entity_data - (usize)store->data;
     if (data_offset % store->data_layout.size != 0) {
         return invalid_entity_key();
     }
@@ -217,7 +234,7 @@ void destroy_entity_render_list(EntityRenderList* render_list) {
 /**
  * call just after `entity->__internal__.render_decided` is set for each entity
  */
-void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store) {
+void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store, void* RES) {
     EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
     EntityBase* entity = NULL;
 
@@ -242,20 +259,26 @@ void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore*
     entity_iter_reset(&store_iter);
     while ((entity = next_entity(&store_iter)) != NULL) {
         if (entity->__internal__.render_decided) {
-            render_list->extract_fn(entity, render_list->render_entity_src_slot);
+            render_list->extract_fn(RES, entity, render_list->render_entity_src_slot);
+
+            render_list->render_entity_src_slot->kind = entity->kind;
+            // data_size
+            render_list->render_entity_src_slot->sort_index = entity->sort_index;
+            render_list->render_entity_src_slot->entity_key = get_entity_key(store, entity);
+
             RenderEntityBase* render_entity_slot = (void*)render_list_get_data_i(render_list, render_list->count++);
             std_memcpy(render_entity_slot, render_list->render_entity_src_slot, render_list->render_entity_size);
         }
     }
 }
 
-void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store) {
+void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store, void* RES) {
     EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
     EntityBase* entity = NULL;
     while ((entity = next_entity(&store_iter)) != NULL) {
         entity->__internal__.render_decided = entity->visible;
     }
-    entity_render_list_extract_base(render_list, store);
+    entity_render_list_extract_base(render_list, store, RES);
 
     #if 0
     usize visible_count = 0;
@@ -321,11 +344,11 @@ void entity_render_list_sort(EntityRenderList* render_list) {
     render_list->sorted_data = temp;
 }
 
-void entity_render_list_render(EntityRenderList* render_list) {
+void entity_render_list_render(EntityRenderList* render_list, void* RES) {
     EntityIter entity_iter = entity_begin_iter(render_list->data, render_list->count, render_list->render_entity_size);
     RenderEntityBase* render_entity;
     while ((render_entity = next_render_entity(&entity_iter)) != NULL) {
-        render_list->render_fn(render_entity);
+        render_list->render_fn(RES, render_entity);
     }
 }
 

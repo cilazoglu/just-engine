@@ -8,11 +8,12 @@ typedef struct {
     usize generation;
 } EntityKey;
 
-#define ENTITY_KEY_IS_INVALID(key) (key.index == JUST_USIZE_MAX)
-#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN(key.generation))
-#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD(key.generation))
+#define ENTITY_KEY_EQUALS(key1, key2) ((key1).index == (key2).index && (key1).generation == (key2).generation)
+#define ENTITY_KEY_IS_INVALID(key) ((key).index == JUST_USIZE_MAX)
+#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN((key).generation))
+#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD((key).generation))
 static inline EntityKey invalid_entity_key() {
-    return (EntityKey) { .index = JUST_USIZE_MAX };
+    return (EntityKey) { .index = JUST_USIZE_MAX, .generation = 0 };
 }
 
 typedef struct {
@@ -56,19 +57,27 @@ bool entity_is_valid(EntityStore* store, EntityKey key);
 EntityBase* get_entity(EntityStore* store, EntityKey key);
 EntityBase* get_entity_checked(EntityStore* store, EntityKey key);
 EntityKey get_entity_key(EntityStore* store, EntityBase* entity);
+EntityKey get_entity_key_checked(EntityStore* store, EntityBase* entity);
 bool despawn_entity(EntityStore* store, EntityKey key);
 
 #define make_uniform_entity_store(EntityType, capacity) make_entity_store(sizeof(EntityType), (capacity))
 #define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
 
 typedef struct {
+    bool _unused;
+} RenderEntityBaseInternal;
+
+typedef struct {
+    EntityKey entity_key;
     usize kind;
     usize data_size;
     uint8 sort_index;
+    // --
+    RenderEntityBaseInternal __internal__;
 } RenderEntityBase;
 
-typedef void (*EntityRenderExtractFn)(EntityBase* entity, RenderEntityBase* set_render_entity);
-typedef void (*RenderEntityRenderFn)(RenderEntityBase* render_entity);
+typedef void (*EntityRenderExtractFn)(void* EXTRACT_RES, EntityBase* entity, RenderEntityBase* set_render_entity);
+typedef void (*RenderEntityRenderFn)(void* RENDER_RES, RenderEntityBase* render_entity);
 
 #define RENDER_LIST_SORT_RADIX 256
 typedef struct {
@@ -90,10 +99,10 @@ void destroy_entity_render_list(EntityRenderList* render_list);
 /**
  * call just after `entity->__internal__.render_decided` is set for each entity
  */
-void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store);
-void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store);
+void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store, void* EXTRACT_RES);
+void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store, void* EXTRACT_RES);
 void entity_render_list_sort(EntityRenderList* render_list);
-void entity_render_list_render(EntityRenderList* render_list);
+void entity_render_list_render(EntityRenderList* render_list, void* RENDER_RES);
 
 #define make_uniform_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
     make_entity_render_list(sizeof(RenderEntityType), (capacity), (extract_fn), (render_fn))
@@ -126,5 +135,8 @@ void destroy_entity_render_pair(EntityRenderPair* entity_render);
         sizeof(EntityType), (entity_store_capacity), \
         sizeof(RenderEntityType), (render_list_capacity), (extract_fn), (render_fn) \
     )
+
+typedef EntityStore (*EntityStore_MakeFn)();
+typedef EntityRenderList (*EntityRenderList_MakeFn)();
 
 // --

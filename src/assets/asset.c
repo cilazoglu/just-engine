@@ -107,6 +107,11 @@ void texture_assets_put_image(TextureAssets* assets, TextureHandle handle, Image
     assets->image_ready[handle.id] = true;
 }
 
+void texture_assets_put_texture(TextureAssets* assets, TextureHandle handle, Texture texture) {
+    assets->textures[handle.id] = texture;
+    assets->texture_ready[handle.id] = true;
+}
+
 void texture_assets_load_image_unchecked(TextureAssets* assets, TextureHandle handle) {
     assets->images[handle.id] = LoadImageFromTexture(assets->textures[handle.id]);
     assets->image_ready[handle.id] = true;

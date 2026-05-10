@@ -891,6 +891,25 @@ static inline Vector2 vector2_yx(Vector2 vec) {
 
 #endif // __HEADER_MATH_VECTOR
 
+#define __HEADER_MATH_TRANSFORM
+#ifdef __HEADER_MATH_TRANSFORM
+
+typedef enum {
+    Rotation_CW = 1,
+    Rotation_CCW = -1,
+} RotationWay;
+
+typedef struct {
+    Anchor anchor;
+    Vector2 position;       // position of the anchor
+    Vector2 size;
+    Vector2 scale;
+    float32 rotation;       // rotation around its anchor
+    RotationWay rway;
+} Transform2D;
+
+#endif // __HEADER_MATH_TRANSFORM
+
 #define __HEADER_MEMORY_MEMORY
 #ifdef __HEADER_MEMORY_MEMORY
 
@@ -2503,6 +2522,7 @@ TextureAssets new_texture_assets();
 TextureHandle texture_assets_reserve_texture_slot(TextureAssets* assets);
 
 void texture_assets_put_image(TextureAssets* assets, TextureHandle handle, Image image);
+void texture_assets_put_texture(TextureAssets* assets, TextureHandle handle, Texture texture);
 void texture_assets_load_image_unchecked(TextureAssets* assets, TextureHandle handle);
 void texture_assets_load_texture_uncheched(TextureAssets* assets, TextureHandle handle);
 void texture_assets_update_texture_unchecked(TextureAssets* assets, TextureHandle handle);
@@ -3788,57 +3808,105 @@ void SYSTEM_RENDER_justclay_ui(
 
 #endif // __HEADER_UI_JUSTCLAY
 
-#define __HEADER_RENDER2D_CAMERA2D
-#ifdef __HEADER_RENDER2D_CAMERA2D
-
-#define PRIMARY_CAMERA_ID 0
+#define __HEADER_RENDER_RENDERTARGET
+#ifdef __HEADER_RENDER_RENDERTARGET
 
 typedef enum {
     RENDER_TARGET_WINDOW = 0,
     RENDER_TARGET_TEXTURE,
 } RenderTargetType;
 
-// Unused in raylib which supports single window
+typedef usize WindowId;
+typedef usize RenderTargetId;
+
+// Limited to single instance in raylib which supports single window
 typedef struct {
-    usize window_id;
+    WindowId window_id;
+    const char* title;
+    URectSize window_size;
+    Color clear_color;
 } RenderTargetWindow;
 
 typedef struct {
-    URectSize texture_size;
     RenderTexture texture;
+    URectSize texture_size;
+    Color clear_color;
 } RenderTargetTexture;
 
 typedef struct {
     RenderTargetType type;
     union {
-        RenderTargetWindow window_target;
-        RenderTargetTexture texture_target;
-    };
-    // -- Common
-    Color clear_color;
+        RenderTargetWindow window;
+        RenderTargetTexture texture;
+    } target;
 } RenderTarget;
-
-typedef struct {
-    Camera2D camera;
-    RenderTarget target;
-    Layers layers;
-    uint32 sort_index;
-} SpriteCamera;
 
 typedef struct {
     usize count;
     usize capacity;
-    SpriteCamera* cameras;
-} SpriteCameraStore;
+    // RenderTargetWindow* target_windows;
+    // RenderTargetTexture* target_textures;
+    RenderTarget* targets;
+} RenderTargets;
 
-void set_primary_camera(SpriteCameraStore* store, SpriteCamera camera);
-SpriteCamera* get_primary_camera(SpriteCameraStore* store);
-void add_camera(SpriteCameraStore* store, SpriteCamera camera);
+RenderTargetId create_render_target_window(RenderTargets* render_targets, const char* title, URectSize window_size, Color clear_color);
+RenderTargetId create_render_target_texture(RenderTargets* render_targets, URectSize texture_size, Color clear_color);
+RenderTarget* get_render_target(RenderTargets* render_targets, RenderTargetId id);
 
-#endif // __HEADER_RENDER2D_CAMERA2D
+// --
 
-#define __HEADER_RENDER2D_SPRITE
-#ifdef __HEADER_RENDER2D_SPRITE
+void render_target_begin_render(RenderTarget* render_target);
+void render_target_end_render();
+
+#endif // __HEADER_RENDER_RENDERTARGET
+
+#define __HEADER_RENDER_CAMERA
+#ifdef __HEADER_RENDER_CAMERA
+
+#define PRIMARY_CAMERA_ID 0
+typedef usize CameraId;
+
+#endif // __HEADER_RENDER_CAMERA
+
+#define __HEADER_RENDER_CAMERA2D
+#ifdef __HEADER_RENDER_CAMERA2D
+
+typedef struct {
+    CameraId id;
+    uint8 sort_index;
+    // --
+    Camera2D camera;
+    RenderTargetId target;
+    Layers layers;
+} EntityCamera2D;
+
+typedef struct {
+    usize count;
+    usize capacity;
+    usize primary_camera_index;
+    EntityCamera2D* cameras;
+} EntityCamera2DStore;
+
+EntityCamera2DStore make_entity_camera2d_store();
+void destroy_entity_camera2d_store(EntityCamera2DStore* store);
+
+EntityCamera2D* get_primary_entity_camera2d(EntityCamera2DStore* store);
+void set_primary_entity_camera2d(EntityCamera2DStore* store, EntityCamera2D camera);
+
+EntityCamera2D* get_entity_camera2d(EntityCamera2DStore* store, CameraId camera_id);
+void add_entity_camera2d(EntityCamera2DStore* store, EntityCamera2D camera);
+
+void sort_entity_camera2d_store(EntityCamera2DStore* store);
+
+// --
+
+void camera2d_begin_render(EntityCamera2D* entity_camera);
+void camera2d_end_render();
+
+#endif // __HEADER_RENDER_CAMERA2D
+
+#define NO__HEADER_RENDER_SPRITE
+#ifdef __HEADER_RENDER_SPRITE
 
 typedef EntityId SpriteEntityId;
 
@@ -3950,19 +4018,20 @@ void SYSTEM_RENDER_render2d_render_sprites(
     PreparedRenderSprites* RENDER_RES_prepared_render_sprites
 );
 
-#endif // __HEADER_RENDER2D_SPRITE
+#endif // __HEADER_RENDER_SPRITE
 
-#define __HEADER_RENDER2D_ENTITY
-#ifdef __HEADER_RENDER2D_ENTITY
+#define __HEADER_RENDER_ENTITY
+#ifdef __HEADER_RENDER_ENTITY
 
 typedef struct {
     usize index;
     usize generation;
 } EntityKey;
 
-#define ENTITY_KEY_IS_INVALID(key) (key.index == JUST_USIZE_MAX)
-#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN(key.generation))
-#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD(key.generation))
+#define ENTITY_KEY_EQUALS(key1, key2) ((key1).index == (key2).index && (key1).generation == (key2).generation)
+#define ENTITY_KEY_IS_INVALID(key) ((key).index == JUST_USIZE_MAX)
+#define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN((key).generation))
+#define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD((key).generation))
 static inline EntityKey invalid_entity_key() {
     return (EntityKey) { .index = JUST_USIZE_MAX };
 }
@@ -4014,13 +4083,20 @@ bool despawn_entity(EntityStore* store, EntityKey key);
 #define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
 
 typedef struct {
+    bool _unused;
+} RenderEntityBaseInternal;
+
+typedef struct {
+    EntityKey entity_key;
     usize kind;
     usize data_size;
     uint8 sort_index;
+    // --
+    RenderEntityBaseInternal __internal__;
 } RenderEntityBase;
 
-typedef void (*EntityRenderExtractFn)(EntityBase* entity, RenderEntityBase* set_render_entity);
-typedef void (*RenderEntityRenderFn)(RenderEntityBase* render_entity);
+typedef void (*EntityRenderExtractFn)(void* EXTRACT_RES, EntityBase* entity, RenderEntityBase* set_render_entity);
+typedef void (*RenderEntityRenderFn)(void* RENDER_RES, RenderEntityBase* render_entity);
 
 #define RENDER_LIST_SORT_RADIX 256
 typedef struct {
@@ -4042,10 +4118,10 @@ void destroy_entity_render_list(EntityRenderList* render_list);
 /**
  * call just after `entity->__internal__.render_decided` is set for each entity
  */
-void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store);
-void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store);
+void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore* store, void* EXTRACT_RES);
+void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store, void* EXTRACT_RES);
 void entity_render_list_sort(EntityRenderList* render_list);
-void entity_render_list_render(EntityRenderList* render_list);
+void entity_render_list_render(EntityRenderList* render_list, void* RENDER_RES);
 
 #define make_uniform_entity_render_list(RenderEntityType, capacity, extract_fn, render_fn) \
     make_entity_render_list(sizeof(RenderEntityType), (capacity), (extract_fn), (render_fn))
@@ -4079,9 +4155,37 @@ void destroy_entity_render_pair(EntityRenderPair* entity_render);
         sizeof(RenderEntityType), (render_list_capacity), (extract_fn), (render_fn) \
     )
 
+typedef EntityStore (*EntityStore_MakeFn)();
+typedef EntityRenderList (*EntityRenderList_MakeFn)();
+
 // --
 
-#endif // __HEADER_RENDER2D_ENTITY
+#endif // __HEADER_RENDER_ENTITY
+
+#define __HEADER_RENDER_CAMERA_ENTITY
+#ifdef __HEADER_RENDER_CAMERA_ENTITY
+
+typedef struct {
+    CameraId camera_id;
+    EntityRenderList render_list;
+} CameraRenderList;
+
+typedef struct {
+    usize count; // == camera_count
+    usize capacity;
+    CameraRenderList* items;
+} CameraRenderLists;
+
+void entity_render_list_sort_for_each_camera(CameraRenderLists* crender_lists);
+
+#endif // __HEADER_RENDER_CAMERA_ENTITY
+
+#define __HEADER_RENDER_RENDER2D
+#ifdef __HEADER_RENDER_RENDER2D
+
+
+
+#endif // __HEADER_RENDER_RENDER2D
 
 #define __HEADER_COROUTINE_COROUTINE
 #ifdef __HEADER_COROUTINE_COROUTINE
@@ -4144,9 +4248,10 @@ typedef enum {
     CORE_STAGE__UPDATE__UPDATE = 4500,
     CORE_STAGE__UPDATE__POST_UPDATE = 5000,
     //
-    CORE_STAGE__RENDER__QUEUE_RENDER = 6000,
-    CORE_STAGE__RENDER__EXTRACT_RENDER = 6500,
-    CORE_STAGE__RENDER__RENDER = 7000,
+    CORE_STAGE__RENDER__PREPARE_RENDER = 6000,
+    CORE_STAGE__RENDER__QUEUE_RENDER = 6500,
+    CORE_STAGE__RENDER__EXTRACT_RENDER = 7000,
+    CORE_STAGE__RENDER__RENDER = 7500,
     CORE_STAGE__RENDER__RENDER_SCREEN = 7500,
     //
     CORE_STAGE__FRAME_END = __INT32_MAX__,
@@ -4330,7 +4435,7 @@ JustApp BUILD_APP();
 
 #endif // __HEADER_EXECUTION_EXECUTION
 
-#define __HEADER_LIB
+#define NO__HEADER_LIB
 #ifdef __HEADER_LIB
 
 typedef struct {
