@@ -60,6 +60,7 @@ void render_target_begin_render(RenderTarget* render_target) {
     switch (RENDER2D_CURRENT_RENDER_TARGET_TYPE) {
     case RENDER_TARGET_WINDOW:
         RenderTargetWindow* render_target_window = &render_target->target.window;
+        JUST_DEV_MARK();
         BeginDrawing();
         ClearBackground(render_target_window->clear_color);
         break;
@@ -76,7 +77,9 @@ void render_target_begin_render(RenderTarget* render_target) {
 void render_target_end_render() {
     switch (RENDER2D_CURRENT_RENDER_TARGET_TYPE) {
     case RENDER_TARGET_WINDOW:
+        JUST_DEV_MARK();
         EndDrawing();
+        JUST_DEV_MARK();
         break;
     case RENDER_TARGET_TEXTURE:
         EndTextureMode();

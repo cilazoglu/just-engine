@@ -97,8 +97,10 @@ void sort_entity_camera2d_store(EntityCamera2DStore* store) {
 
 void camera2d_begin_render(EntityCamera2D* entity_camera) {
     BeginMode2D(entity_camera->camera);
+    JUST_DEV_MARK();
 }
 
 void camera2d_end_render() {
     EndMode2D();
+    JUST_DEV_MARK();
 }

@@ -43,7 +43,7 @@ SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* tran
     };
 }
 
-void render_sprite(SpriteEntityRender* sprite_render) {
+void render_sprite_entity(SpriteEntityRender* sprite_render) {
     DrawTexturePro(
         sprite_render->texture,
         sprite_render->source,

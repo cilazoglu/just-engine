@@ -31,10 +31,12 @@ JustEngineGlobalResources JUST_GLOBAL = LAZY_INIT;
 JustEngineGlobalRenderResources JUST_RENDER_GLOBAL = LAZY_INIT;
 
 void just_engine_init(JustEngineInit init) {
-    TextureAssets texture_assets = new_texture_assets();
-
+    JUST_DEV_MARK();
     RenderTargets render_targets = {0};
     RenderTargetId main_window_target_id = create_render_target_window(&render_targets, init.window.title, init.window.size, init.window.clear_color);
+    
+    TextureAssets texture_assets = new_texture_assets();
+
     RenderTargetId render_screen_target_id = create_render_target_texture(&render_targets, init.render2d.render_screen_size, init.render2d.clear_color);
     TextureHandle render_screen_texture_handle = texture_assets_reserve_texture_slot(&texture_assets);
     {
@@ -42,6 +44,7 @@ void just_engine_init(JustEngineInit init) {
         SetTextureFilter(render_target->target.texture.texture.texture, TEXTURE_FILTER_POINT);
         texture_assets_put_texture(&texture_assets, render_screen_texture_handle, render_target->target.texture.texture.texture);
     }
+    JUST_DEV_MARK();
 
     JUST_GLOBAL = (JustEngineGlobalResources) {
         // --
@@ -50,6 +53,11 @@ void just_engine_init(JustEngineInit init) {
             .window_size = init.window.size,
             .render_screen_size = init.render2d.render_screen_size,
             .window_render_screen_ratio = LATER_INIT,
+        },
+        // --
+        .functions = {
+            .entity_store_make_fn = init.functions.entity_store_make_fn,
+            .entity_render_list_make_fn = init.functions.entity_render_list_make_fn,
         },
         // --
         .frame_storage = make_bump_allocator_with_size(init.frame_storage.size),
@@ -71,6 +79,7 @@ void just_engine_init(JustEngineInit init) {
         // --
         .camera_store = make_entity_camera2d_store(),
         // --
+        .ui_store = ui_element_store_new(),
     };
 
     JUST_GLOBAL.frame_constants.window_render_screen_ratio = (Vector2) {
