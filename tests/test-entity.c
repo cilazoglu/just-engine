@@ -103,8 +103,6 @@ void render_entity(void* RENDER_RES, RenderEntityBase* render_entity) {
     GameEntityRenderRes* RES = RENDER_RES;
     GameRenderEntity* game_render_entity = (void*)render_entity;
 
-    JUST_LOG_DEBUG("entity: %llu\n", game_render_entity->render_entity.entity_key.index);
-
     switch (game_render_entity->render_entity.kind) {
     case EntityKind_Circle: {
         DrawCircle(100, 100, 50, game_render_entity->color);
@@ -113,34 +111,6 @@ void render_entity(void* RENDER_RES, RenderEntityBase* render_entity) {
         DrawRectangleV(game_render_entity->position, game_render_entity->size, game_render_entity->color);
     } break;
     case EntityKind_Sprite: {
-        if (game_render_entity->render_entity.entity_key.index == 3) {
-            if (SW) {
-                SpriteEntityRender* sprite_render = &game_render_entity->sprite_render;
-                // DrawTexture(
-                //     sprite_render->texture,
-                //     10, 10,
-                //     sprite_render->tint
-                // );
-                // DrawRectangleLinesEx(
-                //     sprite_render->destination,
-                //     5,
-                //     sprite_render->tint
-                // );
-
-                DrawTexturePro(
-                    sprite_render->texture,
-                    sprite_render->source,
-                    sprite_render->destination,
-                    sprite_render->origin,
-                    sprite_render->rotation,
-                    sprite_render->tint
-                );
-            }
-            else {
-                render_sprite_entity(&game_render_entity->sprite_render);
-            }
-            break;
-        }
         render_sprite_entity(&game_render_entity->sprite_render);
     } break;
     }
@@ -308,7 +278,6 @@ void INIT() {
             .layers = on_single_layer(2),
         }
     );
-    JUST_DEV_MARK();
 
     EntityKey screen_texture_entity_key = spawn_game_entity(
         &JUST_GLOBAL.entity_store,
@@ -423,7 +392,6 @@ void INIT() {
     );
 
     EntityStore* entity_store = &JUST_GLOBAL.entity_store;
-    JUST_DEV_MARK();
 
     // TEST
     // {
@@ -438,11 +406,6 @@ void INIT() {
     // while ((entity = next_entity(&entity_iter)) != NULL) {
     //     entity->visible = true;
     //     get_entity_key(entity_store, entity);
-    // }
-    JUST_DEV_MARK();
-
-    // for (usize i = 0; i < 100000; i++) {
-    //     JUST_LOG_DEBUG("%llu\n", i);
     // }
 }
 
@@ -536,170 +499,5 @@ int main() {
         NULL
     );
 
-    #if 0
-    RenderTargets RENDER_TARGETS = {0};
-
-    URectSize window_size = { 1000, 1000 };
-    WINDOW_RENDER_TARGET = create_render_target_window(&RENDER_TARGETS, "Entity Render System Test", window_size, WHITE);
-
-    // InitWindow(1000, 1000, "Entity Render System Test");
-    SetTargetFPS(60);
-
-    TextureAssets TEXTURE_ASSETS = new_texture_assets();
-    EntityStore ENTITY_STORE = make_uniform_entity_store(GameEntity, 1);
-    EntityCamera2DStore CAMERA_STORE = make_entity_camera2d_store();
-    CameraRenderLists CAMERA_RENDER_LISTS = {0};
-
-    TextureAssets* texture_assets = &TEXTURE_ASSETS;
-    EntityStore* entity_store = &ENTITY_STORE;
-    EntityCamera2DStore* camera_store = &CAMERA_STORE;
-    CameraRenderLists* camera_render_lists = &CAMERA_RENDER_LISTS;
-
-    Image texture_image = LoadImage("C:\\dev\\c\\just-engine\\test-assets\\fire.png");
-    TextureHandle texture_handle = texture_assets_reserve_texture_slot(texture_assets);
-    texture_assets_load_texture_then_unload_image(texture_assets, texture_handle, texture_image);
-    
-    URectSize screen_render_texture_size = { 1000, 1000 };
-    SCREEN_TEXTURE_TARGET = create_render_target_texture(&RENDER_TARGETS, screen_render_texture_size, GRAY);
-    
-    TextureHandle screen_texture_handle = texture_assets_reserve_texture_slot(texture_assets);
-    JUST_LOG_DEBUG("screen_texture_handle: %d\n", screen_texture_handle.id);
-    {
-        RenderTarget* screen_texture_target = get_render_target(&RENDER_TARGETS, SCREEN_TEXTURE_TARGET);
-        texture_assets_put_texture(texture_assets, screen_texture_handle, screen_texture_target->target.texture.texture.texture);
-        // Texture* screen_texture_slot = texture_assets_get_texture_unchecked(texture_assets, screen_texture_handle);
-        // *screen_texture_slot = screen_texture_target->target.texture.texture.texture;
-    }
-
-    while (!WindowShouldClose()) {
-        // RENDER_PREPARE
-        entity_camera2d_store_prepare_for_render(camera_store, camera_render_lists);
-
-        // RENDER_EXTRACT
-        entity_render_extract_for_each_entity_camera2d(texture_assets, camera_render_lists, entity_store, camera_store);
-
-        // RENDER_SORT
-        entity_render_sort_for_each_entity_camera2d(camera_render_lists);
-
-        // RENDER
-        render_entities_on_each_render_target(texture_assets, &RENDER_TARGETS, camera_render_lists, camera_store);
-    }
-
-    // destroy_entity_render_pair(&ENTITY_RENDER);
-    
-    #endif
-
     return 0;
 }
-
-#if 0
-int main() {
-    return main_2();
-
-    EntityRenderPair ENTITY_RENDER = make_uniform_entity_render_pair(
-        GameEntity, GameRenderEntity, 1, 1, extract_entity, render_entity
-    );
-    EntityStore* store = &ENTITY_RENDER.store;
-    EntityRenderList* render_list = &ENTITY_RENDER.render_list;
-
-    InitWindow(1000, 1000, "Entity Render System Test");
-    SetTargetFPS(60);
-    
-    // INIT
-    EntityKey entity1_key = spawn_game_entity(
-        store,
-        (GameEntity) {
-            .entity = (EntityBase) {
-                .kind = EntityKind_Circle,
-                // .data_size = sizeof(GameEntity),
-                .visible = false,
-                .sort_index = 20,
-            },
-            // .transform = (Transform2D) {
-            //     .anchor = make_anchor(Anchor_Center),
-            //     .position = (Vector2) { 100, 100 },
-            //     .size = (Vector2) { 10, 10 },
-            //     .scale = (Vector2) { 1, 1 },
-            // },
-            .circle_entity = (CircleEntity) {
-                .color = GREEN,
-            },
-        }
-    );
-    
-    EntityKey entity2_key = spawn_game_entity(
-        store,
-        (GameEntity) {
-            .entity = (EntityBase) {
-                .kind = EntityKind_Rectangle,
-                // .data_size = sizeof(GameEntity),
-                .visible = false,
-                .sort_index = 10,
-            },
-            // .transform = (Transform2D) {
-            //     .anchor = make_anchor(Anchor_Center),
-            //     .position = (Vector2) { 100, 100 },
-            //     .size = (Vector2) { 10, 10 },
-            //     .scale = (Vector2) { 1, 1 },
-            // },
-            .rectangle_entity = (RectangleEntity) {
-                .color = BLUE,
-            },
-        }
-    );
-
-    // TEST
-    {
-        EntityBase* entity1 = get_entity(store, entity1_key);
-        EntityKey entity1_key_2 = get_entity_key(store, entity1);
-        ASSERT(!ENTITY_KEY_IS_INVALID(entity1_key_2));
-        ASSERT(entity1_key.index == entity1_key_2.index && entity1_key.generation == entity1_key_2.generation);
-    }
-
-    EntityIter entity_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
-    EntityBase* entity;
-    while ((entity = next_entity(&entity_iter)) != NULL) {
-        entity->visible = true;
-    }
-
-    while (!WindowShouldClose()) {
-        // INPUT
-        bool toggle_visible_entity1 = IsKeyPressed(KEY_A);
-        bool toggle_visible_entity2 = IsKeyPressed(KEY_S);
-        bool swap_sort_indices = IsKeyPressed(KEY_SPACE);
-
-        // UPDATE
-        if (toggle_visible_entity1) {
-            EntityBase* entity1 = get_entity(store, entity1_key);
-            entity1->visible ^= 1;
-        }
-        if (toggle_visible_entity2) {
-            EntityBase* entity2 = get_entity(store, entity2_key);
-            entity2->visible ^= 1;
-        }
-        if (swap_sort_indices) {
-            EntityBase* entity1 = get_entity(store, entity1_key);
-            EntityBase* entity2 = get_entity(store, entity2_key);
-            uint8 temp = entity1->sort_index;
-            entity1->sort_index = entity2->sort_index;
-            entity2->sort_index = temp;
-        }
-
-        // RENDER_EXTRACT
-        entity_render_list_extract(render_list, store, NULL);
-
-        // RENDER_SORT
-        entity_render_list_sort(render_list);
-
-        // RENDER
-        BeginDrawing();
-            ClearBackground(WHITE);
-            entity_render_list_render(render_list, NULL);
-        EndDrawing();
-    }
-
-    destroy_entity_render_pair(&ENTITY_RENDER);
-
-    return 0;
-}
-#endif

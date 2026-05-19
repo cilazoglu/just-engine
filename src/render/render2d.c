@@ -8,27 +8,18 @@ void render2d_prepare_camera_render_lists(
     CameraRenderLists* crender_lists,
     EntityRenderList_MakeFn entity_render_list_make_fn
 ) {
-        JUST_DEV_MARK();
     if (crender_lists->count < camera_store->count) {
-        JUST_DEV_MARK();
         usize reserve_count = camera_store->count - crender_lists->count;
         dynarray_reserve(*crender_lists, .items, reserve_count);
-        JUST_DEV_MARK();
 
         for (usize i = 0; i < camera_store->count; i++) {
             crender_lists->items[i].camera_id = camera_store->cameras[i].id;
-        JUST_DEV_MARK();
         }
         for (usize i = crender_lists->count; i < camera_store->count; i++) {
-        JUST_DEV_MARK();
-            // crender_lists->items[i].render_list = make_uniform_entity_render_list(GameRenderEntity, 10, extract_entity, render_entity);
             crender_lists->items[i].render_list = entity_render_list_make_fn();
-        JUST_DEV_MARK();
         }
         crender_lists->count = camera_store->count;
-        JUST_DEV_MARK();
     }
-        JUST_DEV_MARK();
 }
 
 void entity_render_list_extract_with_camera2d(
@@ -52,9 +43,7 @@ void entity_render_list_extract_with_camera2d(
             entity->__internal__.render_decided = true;
         }
     }
-        JUST_DEV_MARK();
     entity_render_list_extract_base(render_list, store, EXTRACT_RES);
-        JUST_DEV_MARK();
 }
 
 void render2d_extract_for_each_camera2d(
@@ -67,9 +56,7 @@ void render2d_extract_for_each_camera2d(
         CameraRenderList* crender_list = &crender_lists->items[i];
         CameraId camera_id = crender_list->camera_id;
         EntityCamera2D* camera = get_entity_camera2d(camera_store, camera_id);
-        JUST_DEV_MARK();
         entity_render_list_extract_with_camera2d(EXTRACT_RES, &crender_list->render_list, store, camera_id, camera);
-        JUST_DEV_MARK();
     }
 }
 

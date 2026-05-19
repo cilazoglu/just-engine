@@ -238,7 +238,6 @@ void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore*
     EntityIter store_iter = entity_begin_iter(store->data, store->count, store->data_layout.size);
     EntityBase* entity = NULL;
 
-        JUST_DEV_MARK();
     usize render_count = 0;
     while ((entity = next_entity(&store_iter)) != NULL) {
         if (entity->__internal__.render_decided) {
@@ -246,29 +245,17 @@ void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore*
         }
     }
 
-        JUST_DEV_MARK();
     if (render_list->capacity < render_count) {
         #define OVER_FACTOR 2
         usize new_capacity = render_count;
-        JUST_DEV_MARK();
         render_list->capacity = MIN(new_capacity, store->count);
-        JUST_DEV_MARK();
         usize new_size = render_list->render_entity_size * render_list->capacity;
-        JUST_DEV_MARK();
-        JUST_LOG_DEBUG("render_list->render_entity_size: %llu\n", render_list->render_entity_size);
-        JUST_LOG_DEBUG("render_list->capacity: %llu\n", render_list->capacity);
-        JUST_LOG_DEBUG("new_size: %llu\n", new_size);
-        JUST_LOG_DEBUG("render_list->data: %p\n", render_list->data);
         render_list->data = std_realloc(render_list->data, new_size);
-        JUST_DEV_MARK();
 
-        JUST_LOG_DEBUG("render_list->sorted_data: %p\n", render_list->sorted_data);
         render_list->sorted_data = std_realloc(render_list->sorted_data, new_size);
-        JUST_DEV_MARK();
         #undef OVER_FACTOR
     }
 
-        JUST_DEV_MARK();
     render_list->count = 0;
     entity_iter_reset(&store_iter);
     while ((entity = next_entity(&store_iter)) != NULL) {
@@ -283,8 +270,7 @@ void entity_render_list_extract_base(EntityRenderList* render_list, EntityStore*
             RenderEntityBase* render_entity_slot = (void*)render_list_get_data_i(render_list, render_list->count++);
             std_memcpy(render_entity_slot, render_list->render_entity_src_slot, render_list->render_entity_size);
         }
-    
-        JUST_DEV_MARK();}
+    }
 }
 
 void entity_render_list_extract(EntityRenderList* render_list, EntityStore* store, void* RES) {

@@ -31,7 +31,6 @@ JustEngineGlobalResources JUST_GLOBAL = LAZY_INIT;
 JustEngineGlobalRenderResources JUST_RENDER_GLOBAL = LAZY_INIT;
 
 void just_engine_init(JustEngineInit init) {
-    JUST_DEV_MARK();
     RenderTargets render_targets = {0};
     RenderTargetId main_window_target_id = create_render_target_window(&render_targets, init.window.title, init.window.size, init.window.clear_color);
     
@@ -44,7 +43,6 @@ void just_engine_init(JustEngineInit init) {
         SetTextureFilter(render_target->target.texture.texture.texture, TEXTURE_FILTER_POINT);
         texture_assets_put_texture(&texture_assets, render_screen_texture_handle, render_target->target.texture.texture.texture);
     }
-    JUST_DEV_MARK();
 
     JUST_GLOBAL = (JustEngineGlobalResources) {
         // --
