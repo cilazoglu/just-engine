@@ -3,6 +3,7 @@
 test-assets/
 justengine/
 target/
+bin/
 
 game.exe
 main.exe

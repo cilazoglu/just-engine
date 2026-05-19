@@ -379,7 +379,7 @@ void INIT() {
             },
             .sprite_entity = (SpriteEntity) {
                 .texture = test_texture_handle,
-                .tint = WHITE,
+                .tint = BLANK,
                 .use_custom_size = true,
                 .size = (Vector2) { 490 * 0.5, 970 * 0.5 },
                 .use_custom_source = false,
@@ -419,15 +419,75 @@ void INIT() {
     // }
 }
 
+void SYSTEM_POST_UPDATE_0() {
+    {
+        render2d_prepare_camera_render_lists(
+            &JUST_GLOBAL.camera_store,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            JUST_GLOBAL.functions.entity_render_list_make_fn
+        );
+    }
+
+    {
+        render2d_extract_for_each_camera2d(
+            JUST_RENDER_GLOBAL.EXTRACT_RES,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            &JUST_GLOBAL.entity_store,
+            &JUST_GLOBAL.camera_store
+        );
+    }
+
+    {
+        render2d_render_entities_on_each_render_target_except_window(
+            JUST_RENDER_GLOBAL.RENDER_RES,
+            &JUST_GLOBAL.render_targets,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            &JUST_GLOBAL.camera_store,
+            JUST_GLOBAL.render_target_order.order,
+            JUST_GLOBAL.render_target_order.count
+        );
+    }
+
+    {
+        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
+
+        RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
+        render_target_begin_render(render_target);
+    }
+
+    {
+        void* RENDER_RES = JUST_RENDER_GLOBAL.RENDER_RES;
+        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+        CameraRenderLists* crender_lists = &JUST_RENDER_GLOBAL.crender_lists;
+        EntityCamera2DStore* camera_store = &JUST_GLOBAL.camera_store;
+        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
+
+        entity_render_for_each_camera2d(
+            RENDER_RES,
+            crender_lists,
+            camera_store,
+            main_window_render_target
+        );
+    }
+
+    {
+        render_target_end_render();
+    }
+}
+
 int32 CHAPTER__THIS = 0;
 JustChapter CHAPTER = {0};
 
 JustChapter* CHAPTER_this() {
     JustAppBuilder app_builder = {0};
  
-    APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(&app_builder);
+    // APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(&app_builder);
 
-    just_app_builder_add_system(&app_builder, CORE_STAGE__UPDATE__UPDATE, fn_into_system(SYSTEM_UPDATE_0));
+    just_app_builder_add_system(&app_builder,
+        CORE_STAGE__UPDATE__UPDATE, fn_into_system(SYSTEM_UPDATE_0));
+    just_app_builder_add_system(&app_builder,
+        CORE_STAGE__UPDATE__POST_UPDATE, fn_into_system(SYSTEM_POST_UPDATE_0));
 
     CHAPTER = (JustChapter) {
         .chapter_id = CHAPTER__THIS,

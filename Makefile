@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -MMD -MP
+CFLAGS = -std=c11 -MMD -MP -ggdb -Og
 CINCLUDE = \
 	-Ivendor/openssl-3.5.0/include \
 	-Ivendor/curl-8.16.0/include \
