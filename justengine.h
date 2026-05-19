@@ -4644,6 +4644,10 @@ void JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images();
 // void JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites();
 void JUST_SYSTEM_RENDER_EXTRACT_render2d();
 
+// -- -- SORT --
+
+void JUST_SYSTEM_RENDER_SORT_render2d();
+
 // -- -- RENDER --
 
 void JUST_SYSTEM_RENDER_RENDER_render2d();

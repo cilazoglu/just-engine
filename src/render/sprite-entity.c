@@ -30,7 +30,7 @@ SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* tran
     origin = Vector2Multiply(transform->anchor.origin, size);
     rotation = transform->rotation * transform->rway;
 
-    return (SpriteEntityRender) {
+    SpriteEntityRender sprite_render = {
         .texture = texture,
         .tint = sprite->tint,
         .source = source_flipped,
@@ -41,6 +41,7 @@ SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* tran
         .rotation = rotation,
         .sprite_debug_render_options = sprite->debug_render_options,
     };
+    return sprite_render;
 }
 
 void render_sprite_entity(SpriteEntityRender* sprite_render) {

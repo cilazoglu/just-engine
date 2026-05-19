@@ -82,7 +82,6 @@ void extract_entity(void* EXTRACT_RES, EntityBase* entity, RenderEntityBase* set
         };
     } break;
     case EntityKind_Sprite: {
-
         SpriteExtractRes res = {
             .texture_assets = RES->texture_assets,
         };
@@ -94,55 +93,11 @@ void extract_entity(void* EXTRACT_RES, EntityBase* entity, RenderEntityBase* set
             },
             .sprite_render = sprite_render,
         };
-
-        // Transform2D* transform;
-        // Sprite* sprite;
-
-        // Rectangle source;
-        // Rectangle source_flip;
-        // Vector2 size;
-        // Rectangle destination;
-        // Vector2 origin;
-        // float32 rotation;
-
-        // transform = &game_entity->transform;
-        // sprite = &game_entity->sprite_entity.sprite;
-
-        // TextureResponse texture_response = texture_assets_get_texture(RES->texture_assets, sprite->texture);
-        // ASSERT(texture_response.exists);
-        // // Texture* texture = texture_assets_get_texture_or_default(RES->texture_assets, game_render_entity->texture);
-        // Texture texture = *texture_response.texture;
-
-        // source = sprite->use_custom_source
-        //     ? sprite->source
-        //     : (Rectangle) {0, 0, texture.width, texture.height};
-        // source_flip = source;
-        // source_flip.width *= sprite->flip_x ? -1 : 1;
-        // source_flip.height *= sprite->flip_y ? -1 : 1;
-        // size = transform->use_source_size
-        //     ? (Vector2) {source.width, source.height}
-        //     : transform->size;
-        // size = Vector2Multiply(size, transform->scale);
-        // // destination
-        // origin = Vector2Multiply(transform->anchor.origin, size);
-        // rotation = transform->rotation * transform->rway;
-
-        // *set_game_render_entity = (GameRenderEntity) {
-        //     .render_entity = (RenderEntityBase) {
-        //         // .data_size = sizeof(GameRenderEntity),
-        //     },
-        //     .texture = texture,
-        //     .color = sprite->tint,
-        //     .source = source_flip,
-        //     .position = transform->position,
-        //     .size = size,
-        //     .origin = origin,
-        //     .rotation = rotation,
-        //     .sprite_debug_render_options = sprite->debug_render_options,
-        // };
     } break;
     }
 }
+
+bool SW = false;
 
 void render_entity(void* RENDER_RES, RenderEntityBase* render_entity) {
     GameEntityRenderRes* RES = RENDER_RES;
@@ -158,38 +113,35 @@ void render_entity(void* RENDER_RES, RenderEntityBase* render_entity) {
         DrawRectangleV(game_render_entity->position, game_render_entity->size, game_render_entity->color);
     } break;
     case EntityKind_Sprite: {
-        render_sprite_entity(&game_render_entity->sprite_render);
-        // Rectangle destination = (Rectangle) {
-        //     .x = game_render_entity->position.x,
-        //     .y = game_render_entity->position.y,
-        //     .width = game_render_entity->size.x,
-        //     .height = game_render_entity->size.y,
-        // };
-        // DrawTexturePro(
-        //     game_render_entity->texture,
-        //     game_render_entity->source,
-        //     destination,
-        //     game_render_entity->origin,
-        //     game_render_entity->rotation,
-        //     game_render_entity->color
-        // );
+        if (game_render_entity->render_entity.entity_key.index == 3) {
+            if (SW) {
+                SpriteEntityRender* sprite_render = &game_render_entity->sprite_render;
+                // DrawTexture(
+                //     sprite_render->texture,
+                //     10, 10,
+                //     sprite_render->tint
+                // );
+                // DrawRectangleLinesEx(
+                //     sprite_render->destination,
+                //     5,
+                //     sprite_render->tint
+                // );
 
-        // SpriteDebugRenderOptions debug = game_render_entity->sprite_debug_render_options;
-        // if (debug.render_anchor) {
-        //     Vector2 pos = { game_render_entity->position.x, game_render_entity->position.y };
-        //     DrawCircleV(pos, debug.render_anchor_radius, debug.render_anchor_color);
-        // }
-        // if (debug.render_frame) {
-        //     Vector2 pos = { game_render_entity->position.x, game_render_entity->position.y };
-        //     pos = Vector2Subtract(pos, game_render_entity->origin);
-        //     Rectangle dest = {
-        //         .x = pos.x,
-        //         .y = pos.y,
-        //         .width = game_render_entity->size.x,
-        //         .height = game_render_entity->size.y,
-        //     };
-        //     DrawRectangleLinesEx(dest, debug.render_frame_thickness, debug.render_frame_color);
-        // }
+                DrawTexturePro(
+                    sprite_render->texture,
+                    sprite_render->source,
+                    sprite_render->destination,
+                    sprite_render->origin,
+                    sprite_render->rotation,
+                    sprite_render->tint
+                );
+            }
+            else {
+                render_sprite_entity(&game_render_entity->sprite_render);
+            }
+            break;
+        }
+        render_sprite_entity(&game_render_entity->sprite_render);
     } break;
     }
 }
@@ -199,7 +151,7 @@ EntityStore game_make_entity_store() {
 }
 
 EntityRenderList game_make_entity_render_list() {
-    return make_uniform_entity_render_list(GameEntity, 1, extract_entity, render_entity);
+    return make_uniform_entity_render_list(GameRenderEntity, 1, extract_entity, render_entity);
 }
 
 EntityKey entity1_key;
@@ -212,6 +164,8 @@ void SYSTEM_UPDATE_0() {
     bool toggle_visible_entity1 = IsKeyPressed(KEY_A);
     bool toggle_visible_entity2 = IsKeyPressed(KEY_S);
     bool swap_sort_indices = IsKeyPressed(KEY_SPACE);
+
+    SW = IsKeyDown(KEY_W);
 
     // UPDATE
     if (toggle_visible_entity1) {
@@ -228,6 +182,76 @@ void SYSTEM_UPDATE_0() {
         uint8 temp = entity1->sort_index;
         entity1->sort_index = entity2->sort_index;
         entity2->sort_index = temp;
+    }
+}
+
+void SYSTEM_POST_UPDATE_0() {
+    // prepare
+    {
+        render2d_prepare_camera_render_lists(
+            &JUST_GLOBAL.camera_store,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            JUST_GLOBAL.functions.entity_render_list_make_fn
+        );
+    }
+
+    // extract
+    {
+        render2d_extract_for_each_camera2d(
+            JUST_RENDER_GLOBAL.EXTRACT_RES,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            &JUST_GLOBAL.entity_store,
+            &JUST_GLOBAL.camera_store
+        );
+    }
+
+    // sort
+    {
+        render2d_sort_for_each_camera2d(
+            &JUST_RENDER_GLOBAL.crender_lists
+        );
+    }
+
+    // render
+    {
+        render2d_render_entities_on_each_render_target_except_window(
+            JUST_RENDER_GLOBAL.RENDER_RES,
+            &JUST_GLOBAL.render_targets,
+            &JUST_RENDER_GLOBAL.crender_lists,
+            &JUST_GLOBAL.camera_store,
+            JUST_GLOBAL.render_target_order.order,
+            JUST_GLOBAL.render_target_order.count
+        );
+    }
+
+    // render_screen_begin
+    {
+        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
+
+        RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
+        render_target_begin_render(render_target);
+    }
+
+    // render_screen
+    {
+        void* RENDER_RES = JUST_RENDER_GLOBAL.RENDER_RES;
+        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
+        CameraRenderLists* crender_lists = &JUST_RENDER_GLOBAL.crender_lists;
+        EntityCamera2DStore* camera_store = &JUST_GLOBAL.camera_store;
+        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
+
+        entity_render_for_each_camera2d(
+            RENDER_RES,
+            crender_lists,
+            camera_store,
+            main_window_render_target
+        );
+    }
+
+    // render_screen_end
+    {
+        render_target_end_render();
     }
 }
 
@@ -292,7 +316,7 @@ void INIT() {
             .entity = (EntityBase) {
                 .kind = EntityKind_Sprite,
                 // .data_size = sizeof(GameEntity),
-                .visible = false,
+                .visible = true,
                 .sort_index = 0,
             },
             .transform = (Transform2D) {
@@ -326,8 +350,10 @@ void INIT() {
             .entity = (EntityBase) {
                 .kind = EntityKind_Circle,
                 // .data_size = sizeof(GameEntity),
-                .visible = false,
+                .visible = true,
                 .sort_index = 20,
+                .use_layer_system = false,
+                .layers = on_single_layer(2),
             },
             .transform = (Transform2D) {
                 .position = (Vector2) { 100, 100 },
@@ -345,7 +371,7 @@ void INIT() {
             .entity = (EntityBase) {
                 .kind = EntityKind_Rectangle,
                 .data_size = sizeof(GameEntity),
-                .visible = false,
+                .visible = true,
                 .sort_index = 10,
             },
             .transform = (Transform2D) {
@@ -365,8 +391,8 @@ void INIT() {
             .entity = (EntityBase) {
                 .kind = EntityKind_Sprite,
                 // .data_size = sizeof(GameEntity),
-                .visible = false,
-                .sort_index = 10,
+                .visible = true,
+                .sort_index = 11,
                 .use_layer_system = true,
                 .layers = on_single_layer(2),
             },
@@ -378,14 +404,15 @@ void INIT() {
                 // .rway = Rotation_CW,
             },
             .sprite_entity = (SpriteEntity) {
-                .texture = test_texture_handle,
-                .tint = BLANK,
+                .texture = test_texture_handle, // new_texture_handle(DEFAULT_TEXTURE_HANDLE_ID), // test_texture_handle,
+                .tint = WHITE,
                 .use_custom_size = true,
                 .size = (Vector2) { 490 * 0.5, 970 * 0.5 },
                 .use_custom_source = false,
                 // .source = {},
                 .flip_x = false,
                 .flip_y = true,
+                .debug_render_options = {0},
                 // .debug_render_options = {
                 //     .render_frame = true,
                 //     .render_frame_color = RED,
@@ -406,74 +433,17 @@ void INIT() {
     //     ASSERT(entity1_key.index == entity1_key_2.index && entity1_key.generation == entity1_key_2.generation);
     // }
 
-    EntityIter entity_iter = entity_begin_iter(entity_store->data, entity_store->count, entity_store->data_layout.size);
-    EntityBase* entity;
-    while ((entity = next_entity(&entity_iter)) != NULL) {
-        entity->visible = true;
-        get_entity_key(entity_store, entity);
-    }
+    // EntityIter entity_iter = entity_begin_iter(entity_store->data, entity_store->count, entity_store->data_layout.size);
+    // EntityBase* entity;
+    // while ((entity = next_entity(&entity_iter)) != NULL) {
+    //     entity->visible = true;
+    //     get_entity_key(entity_store, entity);
+    // }
     JUST_DEV_MARK();
 
     // for (usize i = 0; i < 100000; i++) {
     //     JUST_LOG_DEBUG("%llu\n", i);
     // }
-}
-
-void SYSTEM_POST_UPDATE_0() {
-    {
-        render2d_prepare_camera_render_lists(
-            &JUST_GLOBAL.camera_store,
-            &JUST_RENDER_GLOBAL.crender_lists,
-            JUST_GLOBAL.functions.entity_render_list_make_fn
-        );
-    }
-
-    {
-        render2d_extract_for_each_camera2d(
-            JUST_RENDER_GLOBAL.EXTRACT_RES,
-            &JUST_RENDER_GLOBAL.crender_lists,
-            &JUST_GLOBAL.entity_store,
-            &JUST_GLOBAL.camera_store
-        );
-    }
-
-    {
-        render2d_render_entities_on_each_render_target_except_window(
-            JUST_RENDER_GLOBAL.RENDER_RES,
-            &JUST_GLOBAL.render_targets,
-            &JUST_RENDER_GLOBAL.crender_lists,
-            &JUST_GLOBAL.camera_store,
-            JUST_GLOBAL.render_target_order.order,
-            JUST_GLOBAL.render_target_order.count
-        );
-    }
-
-    {
-        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
-        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
-
-        RenderTarget* render_target = get_render_target(render_targets, main_window_render_target);
-        render_target_begin_render(render_target);
-    }
-
-    {
-        void* RENDER_RES = JUST_RENDER_GLOBAL.RENDER_RES;
-        RenderTargets* render_targets = &JUST_GLOBAL.render_targets;
-        CameraRenderLists* crender_lists = &JUST_RENDER_GLOBAL.crender_lists;
-        EntityCamera2DStore* camera_store = &JUST_GLOBAL.camera_store;
-        RenderTargetId main_window_render_target = JUST_GLOBAL.known_render_targets.main_window;
-
-        entity_render_for_each_camera2d(
-            RENDER_RES,
-            crender_lists,
-            camera_store,
-            main_window_render_target
-        );
-    }
-
-    {
-        render_target_end_render();
-    }
 }
 
 int32 CHAPTER__THIS = 0;
@@ -482,12 +452,12 @@ JustChapter CHAPTER = {0};
 JustChapter* CHAPTER_this() {
     JustAppBuilder app_builder = {0};
  
-    // APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(&app_builder);
+    APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(&app_builder);
 
     just_app_builder_add_system(&app_builder,
         CORE_STAGE__UPDATE__UPDATE, fn_into_system(SYSTEM_UPDATE_0));
-    just_app_builder_add_system(&app_builder,
-        CORE_STAGE__UPDATE__POST_UPDATE, fn_into_system(SYSTEM_POST_UPDATE_0));
+    // just_app_builder_add_system(&app_builder,
+    //     CORE_STAGE__UPDATE__POST_UPDATE, fn_into_system(SYSTEM_POST_UPDATE_0));
 
     CHAPTER = (JustChapter) {
         .chapter_id = CHAPTER__THIS,
@@ -522,7 +492,7 @@ int main() {
             .window = {
                 .size = { 1000, 1000 },
                 .title = "test",
-                .clear_color = WHITE,
+                .clear_color = GRAY,
             },
             // --------
             .execution = {
@@ -549,7 +519,7 @@ int main() {
             // --------
             .render2d = {
                 .render_screen_size = { 1000, 1000 },
-                .clear_color = GRAY,
+                .clear_color = WHITE,
                 .EXTRACT_RES = &GAME_ENTITY_EXTRACT_RES,
                 .RENDER_RES = &GAME_ENTITY_RENDER_RES,
             },

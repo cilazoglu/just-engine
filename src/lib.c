@@ -352,6 +352,14 @@ void JUST_SYSTEM_RENDER_EXTRACT_render2d() {
 //     );
 // }
 
+// -- -- SORT --
+
+void JUST_SYSTEM_RENDER_SORT_render2d() {
+    render2d_sort_for_each_camera2d(
+        &JUST_RENDER_GLOBAL.crender_lists
+    );
+}
+
 // -- -- RENDER --
 
 void JUST_SYSTEM_RENDER_RENDER_render2d() {
@@ -571,6 +579,11 @@ void APP_BUILDER_ADD__JUST_ENGINE_CORE_SYSTEMS(JustAppBuilder* app_builder) {
         just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_EXTRACT_load_textures_for_loaded_or_changed_images));
         // just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_EXTRACT_RENDER_cull_and_sort_sprites));
         just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_EXTRACT_render2d));
+    }
+    
+    STAGE = CORE_STAGE__RENDER__SORT;
+    {
+        just_app_builder_add_system(app_builder, STAGE, fn_into_system(JUST_SYSTEM_RENDER_SORT_render2d));
     }
 
     STAGE = CORE_STAGE__RENDER__RENDER;
