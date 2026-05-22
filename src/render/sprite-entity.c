@@ -1,7 +1,7 @@
 
 #include "sprite-entity.h"
 
-SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* transform, SpriteEntity* sprite) {
+SpriteRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* transform, Sprite* sprite) {
     Rectangle source;
     Rectangle source_flipped;
     Vector2 size;
@@ -30,7 +30,7 @@ SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* tran
     origin = Vector2Multiply(transform->anchor.origin, size);
     rotation = transform->rotation * transform->rway;
 
-    SpriteEntityRender sprite_render = {
+    SpriteRender sprite_render = {
         .texture = texture,
         .tint = sprite->tint,
         .source = source_flipped,
@@ -44,7 +44,7 @@ SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* tran
     return sprite_render;
 }
 
-void render_sprite_entity(SpriteEntityRender* sprite_render) {
+void render_sprite_entity(SpriteRender* sprite_render) {
     DrawTexturePro(
         sprite_render->texture,
         sprite_render->source,

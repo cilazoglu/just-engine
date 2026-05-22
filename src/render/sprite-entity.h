@@ -23,7 +23,7 @@ typedef struct {
     bool flip_x;
     bool flip_y;
     SpriteDebugRenderOptions debug_render_options;
-} SpriteEntity;
+} Sprite;
 
 typedef struct {
     Texture texture;
@@ -35,11 +35,11 @@ typedef struct {
     Vector2 origin;
     float32 rotation;
     SpriteDebugRenderOptions sprite_debug_render_options;
-} SpriteEntityRender;
+} SpriteRender;
 
 typedef struct {
     TextureAssets* texture_assets;
 } SpriteExtractRes;
 
-SpriteEntityRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* transform, SpriteEntity* sprite);
-void render_sprite_entity(SpriteEntityRender* sprite_render);
+SpriteRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* transform, Sprite* sprite);
+void render_sprite_entity(SpriteRender* sprite_render);
