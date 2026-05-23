@@ -3914,12 +3914,21 @@ typedef struct {
     usize generation;
 } EntityKey;
 
+typedef struct {
+    usize index;
+    usize generation;
+} StaticEntityKey;
+
 #define ENTITY_KEY_EQUALS(key1, key2) ((key1).index == (key2).index && (key1).generation == (key2).generation)
+#define ENTITY_KEY_IS_VALID(key) ((key).index != JUST_USIZE_MAX)
 #define ENTITY_KEY_IS_INVALID(key) ((key).index == JUST_USIZE_MAX)
 #define ENTITY_KEY_SLOT_IS_FREE(key) (IS_EVEN((key).generation))
 #define ENTITY_KEY_SLOT_IS_OCCUPIED(key) (IS_ODD((key).generation))
 static inline EntityKey invalid_entity_key() {
     return (EntityKey) { .index = JUST_USIZE_MAX, .generation = 0 };
+}
+static inline StaticEntityKey invalid_static_entity_key() {
+    return (StaticEntityKey) { .index = JUST_USIZE_MAX, .generation = 0 };
 }
 
 typedef struct {
@@ -3943,19 +3952,20 @@ typedef struct {
 #define entity_data_i(data_ptr, entity_size, i) ((byte*)(((byte*)(data_ptr)) + ((entity_size) * (i))))
 
 typedef struct {
-    MemoryLayout data_layout; // sizeof(Type impl Entity2D)
+    MemoryLayout data_layout; // sizeof(Type impl EntityBase)
+    bool nonstatic_entity_inserted;
+    usize nonstatic_entity_start;
     // --
     usize count;
     usize capacity;
     usize free_list_head;
     EntityKey* indices; // occupied: .index -> data, free: .index -> indices (next_free), last_free ([.capacity]) := USIZE_MAX
-    byte* data; // Entity2D*
+    byte* data; // EntityBase*
     usize* erase;
 } EntityStore;
 
 EntityStore make_entity_store(usize entity_size, usize capacity);
 void destroy_entity_store(EntityStore* store);
-void entity_store_sort_z_index(EntityStore* store);
 bool entity_store_grow(EntityStore* store, usize new_capacity);
 // EntityKey spawn_entity(EntityStore* store, EntityBase entity);
 EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity_size);
@@ -3966,8 +3976,14 @@ EntityKey get_entity_key(EntityStore* store, EntityBase* entity);
 EntityKey get_entity_key_checked(EntityStore* store, EntityBase* entity);
 bool despawn_entity(EntityStore* store, EntityKey key);
 
+StaticEntityKey insert_static_entity_data(EntityStore* store, byte* entity_data, usize entity_size);
+bool static_entity_is_valid(EntityStore* store, StaticEntityKey key);
+EntityBase* get_static_entity(EntityStore* store, StaticEntityKey key);
+EntityBase* get_static_entity_checked(EntityStore* store, StaticEntityKey key);
+
 #define make_uniform_entity_store(EntityType, capacity) make_entity_store(sizeof(EntityType), (capacity))
 #define spawn_entity(store_ptr, entity) insert_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
+#define spawn_static_entity(store_ptr, entity) insert_static_entity_data((store_ptr), (void*)&((entity)), sizeof((entity)))
 
 typedef struct {
     bool _unused;

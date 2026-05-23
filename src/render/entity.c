@@ -73,6 +73,8 @@ static inline byte* store_get_data_i(EntityStore* store, usize i) {
 }
 
 EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity_size) {
+    store->nonstatic_entity_inserted = true;
+
     if (store->free_list_head == JUST_USIZE_MAX) {
         #define GROW_FACTOR 2
 
@@ -117,7 +119,11 @@ EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity
 }
 
 bool entity_is_valid(EntityStore* store, EntityKey key) {
-    return key.index < store->capacity && ENTITY_KEY_SLOT_IS_OCCUPIED(key) && key.generation == store->indices[key.index].generation;
+    return key.index < store->capacity
+        && store->nonstatic_entity_inserted
+        && store->nonstatic_entity_start <= key.index
+        && ENTITY_KEY_SLOT_IS_OCCUPIED(key)
+        && key.generation == store->indices[key.index].generation;
 }
 
 EntityBase* get_entity(EntityStore* store, EntityKey key) {
@@ -199,6 +205,42 @@ bool despawn_entity(EntityStore* store, EntityKey key) {
     if (store->count > 0) {
         store->indices[store->erase[remove_data_key.index]].index = remove_data_key.index;
     }
+}
+
+StaticEntityKey insert_static_entity_data(EntityStore* store, byte* entity_data, usize entity_size) {
+    ASSERT(!store->nonstatic_entity_inserted);
+
+    EntityKey entity_key = insert_entity_data(store, entity_data, entity_size);
+    store->nonstatic_entity_inserted = false;
+    store->nonstatic_entity_start = entity_key.index + 1; // no despawn
+    
+    if (ENTITY_KEY_IS_INVALID(entity_key)) {
+        return invalid_static_entity_key();
+    }
+    EntityKey data_key = store->indices[entity_key.index];
+    return (StaticEntityKey) {
+        .index = data_key.index,
+        .generation = data_key.generation,
+    };
+}
+
+bool static_entity_is_valid(EntityStore* store, StaticEntityKey key) {
+    return key.index < store->capacity
+        && key.index < store->count
+        && ENTITY_KEY_SLOT_IS_OCCUPIED(key);
+}
+
+EntityBase* get_static_entity(EntityStore* store, StaticEntityKey key) {
+    usize data_index = key.index;
+    byte* entity_data = store_get_data_i(store, data_index);
+    return (EntityBase*) entity_data;
+}
+
+EntityBase* get_static_entity_checked(EntityStore* store, StaticEntityKey key) {
+    if (!static_entity_is_valid(store, key)) {
+        return NULL;
+    }
+    return get_static_entity(store, key);
 }
 
 // -- EntityRenderList --
