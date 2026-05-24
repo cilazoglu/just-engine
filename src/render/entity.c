@@ -49,8 +49,11 @@ bool entity_store_grow(EntityStore* store, usize new_capacity) {
 
     usize old_capacity = store->capacity;
     usize reserve_count = new_capacity - store->count;
-    dynarray_reserve2(*store, .indices, .erase, reserve_count);
+    // dynarray_reserve2(*store, .indices, .erase, reserve_count);
+    store->indices = std_realloc(store->indices, sizeof(store->indices[0]) * new_capacity);
+    store->erase = std_realloc(store->erase, sizeof(store->erase[0]) * new_capacity);
     store->data = std_realloc(store->data, store->data_layout.size * new_capacity);
+    store->capacity = new_capacity;
 
     if (store->free_list_head != JUST_USIZE_MAX) {
         store->indices[old_capacity-1].index = old_capacity;
@@ -108,6 +111,10 @@ EntityKey insert_entity_data(EntityStore* store, byte* entity_data, usize entity
         .index = store->count,
         .generation = generation + 1,
     };
+
+    // if (!ENTITY_KEY_EQUALS(return_key, data_key)) {
+    //     return invalid_entity_key();
+    // }
 
     store->indices[return_key.index] = data_key;
     // store->data[data_key.index] = entity;
@@ -188,7 +195,9 @@ EntityKey get_entity_key_checked(EntityStore* store, EntityBase* entity) {
 
 bool despawn_entity(EntityStore* store, EntityKey key) {
     if (!entity_is_valid(store, key)) {
-        return false;
+        // return false;
+        bool val_false = entity_is_valid(store, key);
+        return val_false;
     }
 
     EntityKey remove_data_key = store->indices[key.index];
@@ -202,9 +211,12 @@ bool despawn_entity(EntityStore* store, EntityKey key) {
     std_memcpy(dst_data, src_data, store->data_layout.size);
     dynarray_swap_remove(*store, remove_data_key.index, .erase); // store->count--
 
-    if (store->count > 0) {
-        store->indices[store->erase[remove_data_key.index]].index = remove_data_key.index;
+    if (store->count > 0 && remove_data_key.index < store->count) {
+        store->indices[store->erase[remove_data_key.index]].index = 
+
+            remove_data_key.index;
     }
+    return true;
 }
 
 StaticEntityKey insert_static_entity_data(EntityStore* store, byte* entity_data, usize entity_size) {

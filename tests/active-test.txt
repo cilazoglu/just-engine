@@ -1,1 +1,1 @@
-test-entity
+test-entity-store
