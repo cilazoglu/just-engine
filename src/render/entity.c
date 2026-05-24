@@ -199,6 +199,7 @@ bool despawn_entity(EntityStore* store, EntityKey key) {
         bool val_false = entity_is_valid(store, key);
         return val_false;
     }
+    ASSERT(store->count > 0);
 
     EntityKey remove_data_key = store->indices[key.index];
 
@@ -206,15 +207,13 @@ bool despawn_entity(EntityStore* store, EntityKey key) {
     store->indices[key.index].index = store->free_list_head;
     store->free_list_head = key.index;
 
-    byte* src_data = store_get_data_i(store, store->count);
+    byte* src_data = store_get_data_i(store, store->count-1);
     byte* dst_data = store_get_data_i(store, remove_data_key.index);
     std_memcpy(dst_data, src_data, store->data_layout.size);
     dynarray_swap_remove(*store, remove_data_key.index, .erase); // store->count--
 
     if (store->count > 0 && remove_data_key.index < store->count) {
-        store->indices[store->erase[remove_data_key.index]].index = 
-
-            remove_data_key.index;
+        store->indices[store->erase[remove_data_key.index]].index = remove_data_key.index;
     }
     return true;
 }

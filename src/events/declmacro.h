@@ -198,10 +198,10 @@
         usize index = iter->index;\
         iter->index++;\
 \
-        if (index < events_this_frame.count) {\
-            return events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            return events_last_frame.items[index];\
         }\
-        return events_last_frame.items[index - events_this_frame.count];\
+        return events_this_frame.items[index - events_last_frame.count];\
     }\
 \
     TYPE_EVENT TYPE_EVENT##__events_iter_consume_next(EventsIter_##TYPE_EVENT* iter) {\
@@ -212,11 +212,11 @@
         iter->index++;\
 \
         TYPE_EVENT* event;\
-        if (index < events_this_frame.count) {\
-            event = &events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            event = &events_last_frame.items[index];\
         }\
         else {\
-            event = &events_last_frame.items[index - events_this_frame.count];\
+            event = &events_this_frame.items[index - events_last_frame.count];\
         }\
 \
         event->consumed = true;\
@@ -231,11 +231,11 @@
         iter->index++;\
 \
         TYPE_EVENT* event;\
-        if (index < events_this_frame.count) {\
-            event = &events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            event = &events_last_frame.items[index];\
         }\
         else {\
-            event = &events_last_frame.items[index - events_this_frame.count];\
+            event = &events_this_frame.items[index - events_last_frame.count];\
         }\
 \
         *set_consumed = &event->consumed;\
@@ -342,10 +342,10 @@
         usize index = iter->index;\
         iter->index++;\
 \
-        if (index < events_this_frame.count) {\
-            return events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            return events_last_frame.items[index];\
         }\
-        return events_last_frame.items[index - events_this_frame.count];\
+        return events_this_frame.items[index - events_last_frame.count];\
     }\
 \
     TYPE_EVENT TYPE_EVENT##__events_iter_consume_next(EventsIter_##TYPE_EVENT* iter) {\
@@ -356,11 +356,11 @@
         iter->index++;\
 \
         TYPE_EVENT* event;\
-        if (index < events_this_frame.count) {\
-            event = &events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            event = &events_last_frame.items[index];\
         }\
         else {\
-            event = &events_last_frame.items[index - events_this_frame.count];\
+            event = &events_this_frame.items[index - events_last_frame.count];\
         }\
 \
         event->consumed = true;\
@@ -375,11 +375,11 @@
         iter->index++;\
 \
         TYPE_EVENT* event;\
-        if (index < events_this_frame.count) {\
-            event = &events_this_frame.items[index];\
+        if (index < events_last_frame.count) {\
+            event = &events_last_frame.items[index];\
         }\
         else {\
-            event = &events_last_frame.items[index - events_this_frame.count];\
+            event = &events_this_frame.items[index - events_last_frame.count];\
         }\
 \
         *set_consumed = &event->consumed;\

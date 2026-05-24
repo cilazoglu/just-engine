@@ -117,10 +117,10 @@ TextureAssetEvent TextureAssetEvent__events_iter_read_next(EventsIter_TextureAss
     usize index = iter->index;
     iter->index++;
 
-    if (index < events_this_frame.count) {
-        return events_this_frame.items[index];
+    if (index < events_last_frame.count) {
+        return events_last_frame.items[index];
     }
-    return events_last_frame.items[index - events_this_frame.count];
+    return events_this_frame.items[index - events_last_frame.count];
 }
 
 TextureAssetEvent TextureAssetEvent__events_iter_consume_next(EventsIter_TextureAssetEvent* iter) {
@@ -131,11 +131,11 @@ TextureAssetEvent TextureAssetEvent__events_iter_consume_next(EventsIter_Texture
     iter->index++;
 
     TextureAssetEvent* event;
-    if (index < events_this_frame.count) {
-        event = &events_this_frame.items[index];
+    if (index < events_last_frame.count) {
+        event = &events_last_frame.items[index];
     }
     else {
-        event = &events_last_frame.items[index - events_this_frame.count];
+        event = &events_this_frame.items[index - events_last_frame.count];
     }
 
     event->consumed = true;
@@ -150,11 +150,11 @@ TextureAssetEvent TextureAssetEvent__events_iter_maybe_consume_next(EventsIter_T
     iter->index++;
 
     TextureAssetEvent* event;
-    if (index < events_this_frame.count) {
-        event = &events_this_frame.items[index];
+    if (index < events_last_frame.count) {
+        event = &events_last_frame.items[index];
     }
     else {
-        event = &events_last_frame.items[index - events_this_frame.count];
+        event = &events_this_frame.items[index - events_last_frame.count];
     }
 
     *set_consumed = &event->consumed;
