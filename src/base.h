@@ -104,6 +104,20 @@ typedef struct {
     };
 } URectSize;
 
+static inline Vector2 rectangle_position(Rectangle rect) {
+    return (Vector2) {
+        .x = rect.x,
+        .y = rect.y,
+    };
+}
+
+static inline RectSize rectangle_size(Rectangle rect) {
+    return (RectSize) {
+        .width = rect.width,
+        .height = rect.height,
+    };
+}
+
 static inline Rectangle into_rectangle(Vector2 position, RectSize size) {
     return (Rectangle) {
         .x = position.x,

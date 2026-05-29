@@ -7,6 +7,7 @@
 typedef struct {
     CameraId id;
     uint8 sort_index;
+    bool disabled;
     // --
     Camera2D camera;
     RenderTargetId target;

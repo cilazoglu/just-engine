@@ -16,7 +16,7 @@
 
 static FieldInfo URectSize__fields[2];
 static FieldInfo StepTimer__fields[4];
-static FieldInfo SpriteSheetAnimationState__fields[8];
+static FieldInfo SpriteSheetAnimationState__fields[9];
 static FieldInfo AABBCollider__fields[4];
 static FieldInfo AABBColliderSet__fields[4];
 
@@ -83,6 +83,9 @@ static FieldInfo SpriteSheetAnimationState__fields[] = {
 	},
 	{
 		.type = TYPE_uint32, .name = "frame_count", .ptr = &(((SpriteSheetAnimationState*)(0))->frame_count),
+	},
+	{
+		.type = TYPE_bool, .name = "move_back", .ptr = &(((SpriteSheetAnimationState*)(0))->move_back),
 	},
 	{
 		.type = TYPE_struct, .name = "timer", .ptr = &(((SpriteSheetAnimationState*)(0))->timer),

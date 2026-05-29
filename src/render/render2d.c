@@ -75,7 +75,7 @@ void entity_render_for_each_camera2d(
     for (usize i = 0; i < crender_lists->count; i++) {
         CameraRenderList* crender_list = &crender_lists->items[i];
         EntityCamera2D* camera = get_entity_camera2d(camera_store, crender_list->camera_id);
-        if (camera->target == active_render_target) {
+        if (!camera->disabled && camera->target == active_render_target) {
             camera2d_begin_render(camera);
                 entity_render_list_render(&crender_list->render_list, RENDER_RES);
             camera2d_end_render();

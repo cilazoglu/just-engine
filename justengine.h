@@ -428,6 +428,20 @@ typedef struct {
     };
 } URectSize;
 
+static inline Vector2 rectangle_position(Rectangle rect) {
+    return (Vector2) {
+        .x = rect.x,
+        .y = rect.y,
+    };
+}
+
+static inline RectSize rectangle_size(Rectangle rect) {
+    return (RectSize) {
+        .width = rect.width,
+        .height = rect.height,
+    };
+}
+
 static inline Rectangle into_rectangle(Vector2 position, RectSize size) {
     return (Rectangle) {
         .x = position.x,
@@ -3340,6 +3354,7 @@ typedef struct {
     uint32 rows;
     uint32 cols;
     uint32 frame_count;
+    bool move_back;
     // -- State --
     StepTimer timer;
     uint32 current_frame;
@@ -3875,6 +3890,7 @@ typedef usize CameraId;
 typedef struct {
     CameraId id;
     uint8 sort_index;
+    bool disabled;
     // --
     Camera2D camera;
     RenderTargetId target;
@@ -4126,6 +4142,30 @@ typedef struct {
 SpriteRender extract_sprite_entity(SpriteExtractRes RES, Transform2D* transform, Sprite* sprite);
 void render_sprite_entity(SpriteRender* sprite_render);
 
+static inline Vector2 sprite_get_size(Sprite* sprite, TextureAssets* texture_assets) {
+    if (sprite->use_custom_size) return sprite->size;
+    if (sprite->use_custom_source) return rectangle_size(sprite->source).as_vec;
+    if (texture_assets != NULL) {
+        Texture* texture = texture_assets_get_texture_unchecked(texture_assets, sprite->texture);
+        return (Vector2) { .x = texture->width, .y = texture->height };
+    }
+    PANIC("Sprite size is broken\n");
+}
+
+static inline SpaceShift sprite_get_space_shift(Transform2D* transform, Sprite* sprite, TextureAssets* texture_assets) {
+    Vector2 sprite_size = sprite_get_size(sprite, texture_assets);
+    return (SpaceShift) {
+        .translation = Vector2Subtract(
+            transform->position,
+            Vector2Multiply(
+                transform->scale,
+                Vector2Multiply(sprite_size, transform->anchor.origin)
+            )
+        ),
+        .scale = transform->scale,
+    };
+}
+
 #endif // __HEADER_RENDER_SPRITE_ENTITY
 
 #define __HEADER_RENDER_RENDER2D
@@ -4244,11 +4284,12 @@ typedef enum {
     CORE_STAGE__UPDATE__UPDATE = 4500,
     CORE_STAGE__UPDATE__POST_UPDATE = 5000,
     //
-    CORE_STAGE__RENDER__PREPARE_RENDER = 6000,
-    CORE_STAGE__RENDER__QUEUE_RENDER = 6500,
-    CORE_STAGE__RENDER__EXTRACT_RENDER = 7000,
-    CORE_STAGE__RENDER__RENDER = 7500,
-    CORE_STAGE__RENDER__RENDER_SCREEN = 7500,
+    CORE_STAGE__RENDER__PREPARE = 6000,
+    CORE_STAGE__RENDER__QUEUE = 6500,
+    CORE_STAGE__RENDER__EXTRACT = 7000,
+    CORE_STAGE__RENDER__SORT = 7500,
+    CORE_STAGE__RENDER__RENDER = 8000,
+    CORE_STAGE__RENDER__RENDER_SCREEN = 8500,
     //
     CORE_STAGE__FRAME_END = __INT32_MAX__,
 } JustEngineCoreStage;

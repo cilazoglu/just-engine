@@ -13,6 +13,7 @@ typedef struct {
     uint32 rows;
     uint32 cols;
     uint32 frame_count;
+    bool move_back;
     // -- State --
     StepTimer timer;
     uint32 current_frame;
