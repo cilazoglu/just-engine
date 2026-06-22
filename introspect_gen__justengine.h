@@ -12,6 +12,7 @@
  * - SpriteSheetAnimationState
  * - AABBCollider
  * - AABBColliderSet
+ * - JustClay_PointerState
 */
 
 static FieldInfo URectSize__fields[2];
@@ -19,6 +20,7 @@ static FieldInfo StepTimer__fields[4];
 static FieldInfo SpriteSheetAnimationState__fields[9];
 static FieldInfo AABBCollider__fields[4];
 static FieldInfo AABBColliderSet__fields[4];
+static FieldInfo JustClay_PointerState__fields[7];
 
 static FieldInfo URectSize__union_0__variants[] = {
 	{
@@ -133,12 +135,37 @@ static FieldInfo AABBColliderSet__fields[] = {
 	},
 };
 
+static FieldInfo JustClay_PointerState__fields[] = {
+	{
+		.type = TYPE_bool, .name = "on_hover", .ptr = &(((JustClay_PointerState*)(0))->on_hover),
+	},
+	{
+		.type = TYPE_bool, .name = "on_press", .ptr = &(((JustClay_PointerState*)(0))->on_press),
+	},
+	{
+		.type = TYPE_bool, .name = "just_begin_hover", .ptr = &(((JustClay_PointerState*)(0))->just_begin_hover),
+	},
+	{
+		.type = TYPE_bool, .name = "just_end_hover", .ptr = &(((JustClay_PointerState*)(0))->just_end_hover),
+	},
+	{
+		.type = TYPE_bool, .name = "just_pressed", .ptr = &(((JustClay_PointerState*)(0))->just_pressed),
+	},
+	{
+		.type = TYPE_bool, .name = "just_released", .ptr = &(((JustClay_PointerState*)(0))->just_released),
+	},
+	{
+		.type = TYPE_bool, .name = "just_clicked", .ptr = &(((JustClay_PointerState*)(0))->just_clicked),
+	},
+};
+
 
 __IMPL_____generate_print_functions(URectSize);
 __IMPL_____generate_print_functions(StepTimer);
 __IMPL_____generate_print_functions(SpriteSheetAnimationState);
 __IMPL_____generate_print_functions(AABBCollider);
 __IMPL_____generate_print_functions(AABBColliderSet);
+__IMPL_____generate_print_functions(JustClay_PointerState);
 
 
 #endif

@@ -1,4 +1,5 @@
 #include "justengine.h"
+#include "introspect_gen__justengine.h"
 
 #define FONT_ID_BODY_24 0
 #define FONT_ID_BODY_16 1
@@ -7,6 +8,8 @@
 #define CLAY_CONTENT_BG_GRAY    (Clay_Color) { 90, 90, 90, 255 }
 
 uint32 test = 0;
+usize frame_number = 0;
+usize create_frame_number = 0;
 
 void button_on_hover(
     Clay_ElementId elementId,
@@ -23,6 +26,7 @@ void button_on_hover(
         break;
     case CLAY_POINTER_DATA_RELEASED_THIS_FRAME:
         state = "CLAY_POINTER_DATA_RELEASED_THIS_FRAME";
+        printf("create_frame_number: %llu, frame_number: %llu ", create_frame_number, frame_number);
         break;
     case CLAY_POINTER_DATA_RELEASED:
         state = "CLAY_POINTER_DATA_RELEASED";
@@ -32,6 +36,19 @@ void button_on_hover(
     String element_id_str = clay_string_to_string(elementId.stringId);
     printf("element: %s, state: %s\n", element_id_str.cstr, state);
     test = 1;
+}
+
+void button_on_click(
+    Clay_ElementId element_id,
+    JustClay_PointerState pointer_state,
+    void* user_data
+) {
+    if (pointer_state.just_clicked) {
+        JUST_LOG_ERROR("Clicked: %s\n", element_id.stringId.chars);
+    }
+    else {        
+        // just_pretty_print(JustClay_PointerState)(NULL, &pointer_state);
+    }
 }
 
 void RenderTabSelectButton(Clay_String text) {
@@ -51,6 +68,9 @@ void RenderTabSelectButton(Clay_String text) {
         .backgroundColor = Clay_Hovered() ? printf("Hovered: %u\n", test) ? RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
         .cornerRadius = CLAY_CORNER_RADIUS(5),
     }) {
+        if (text.chars[0] == 'S') { // "Sound"
+            create_frame_number = frame_number;
+        }
         Clay_OnHover(button_on_hover, (uintptr_t) NULL);
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = FONT_ID_BODY_24,
@@ -58,7 +78,39 @@ void RenderTabSelectButton(Clay_String text) {
             .textColor = RAYLIB_COLOR_TO_CLAY_COLOR(BLACK),
             .textAlignment = CLAY_TEXT_ALIGN_CENTER,
         }));
-    }
+    };
+}
+
+bool JUST_Clay_Hovered(void);
+
+void JustRenderTabSelectButton(Clay_String text) {
+    bool sw = text.chars[0] == 'S'; // Sound
+    CLAY((Clay_ElementDeclaration) {
+        .id = CLAY_SID(text),
+        .layout = {
+            // .padding = CLAY_PADDING_ALL(16),
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0),
+            },
+            .childAlignment = {
+                .x = CLAY_ALIGN_X_CENTER,
+                .y = CLAY_ALIGN_Y_CENTER,
+            },
+        },
+        .backgroundColor = (sw ? JUST_Clay_Hovered() : JustClay_OnHover()) ? (RAYLIB_COLOR_TO_CLAY_COLOR(GREEN)) : (RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE)),
+        //.backgroundColor = Clay_Hovered() ? printf("Hovered: %u\n", test) ? RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
+        .cornerRadius = CLAY_CORNER_RADIUS(5),
+    }) {
+        JustClay_InterractWithPointer(button_on_click, NULL);
+        bool on_hover = JustClay_OnHover();
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontId = FONT_ID_BODY_24,
+            .fontSize = 24,
+            .textColor = on_hover ? RAYLIB_COLOR_TO_CLAY_COLOR(BLACK) : RAYLIB_COLOR_TO_CLAY_COLOR(WHITE),
+            .textAlignment = CLAY_TEXT_ALIGN_CENTER,
+        }));
+    };
 }
 
 Clay_RenderCommandArray settings_page_ui() {
@@ -106,7 +158,7 @@ Clay_RenderCommandArray settings_page_ui() {
             // .border = test_border_red,
         }) {
             CLAY((Clay_ElementDeclaration) {
-                .id = CLAY_ID("TabSelection"),
+                .id = CLAY_ID("TabSelection_1"),
                 .backgroundColor = CLAY_CONTENT_BG_GRAY,
                 .layout = {
                     .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -122,8 +174,26 @@ Clay_RenderCommandArray settings_page_ui() {
                 RenderTabSelectButton(CLAY_STRING("General"));
                 RenderTabSelectButton(CLAY_STRING("Graphics"));
                 RenderTabSelectButton(CLAY_STRING("Sound"));
-            }
-        }
+            };
+            CLAY((Clay_ElementDeclaration) {
+                .id = CLAY_ID("TabSelection_2"),
+                .backgroundColor = CLAY_CONTENT_BG_GRAY,
+                .layout = {
+                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                    .sizing = {
+                        .width = CLAY_SIZING_GROW(0),
+                        .height = CLAY_SIZING_PERCENT(0.08),
+                    },
+                    // .padding = CLAY_PADDING_ALL(8),
+                    .childGap = 8,
+                },
+                // .border = test_border_black,
+            }) {
+                JustRenderTabSelectButton(CLAY_STRING("General 2"));
+                JustRenderTabSelectButton(CLAY_STRING("Graphics 2"));
+                JustRenderTabSelectButton(CLAY_STRING("Sound 2"));
+            };
+        };
     }
 
     return Clay_EndLayout();
@@ -162,8 +232,10 @@ int main() {
     }
 
     initialize_justclay(&RES_FONT_LIST);
+    // Clay_SetDebugModeEnabled(true);
 
     while (!WindowShouldClose()) {
+        frame_number++;
         float32 delta_time = GetFrameTime();
 
         bool mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);

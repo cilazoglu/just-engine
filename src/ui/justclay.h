@@ -4,8 +4,11 @@
 
 #include "clay.h"
 
+#include "introspect/introspect.h"
 #include "assets/asset.h"
+#include "events/declmacro.h"
 
+typedef uint32 Clay_Id;
 #define CLAY_NULLID 0
 
 #define RAYLIB_VECTOR2_TO_CLAY_VECTOR2(vector) (Clay_Vector2) { .x = (vector).x, .y = (vector).y }
@@ -35,55 +38,95 @@ typedef struct {
 
 // -----
 
-typedef uint32 Clay_Id;
-typedef void (*Clay_OnHoverFunction)(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData);
+typedef enum {
+    JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
+    JUSTCLAY_POINTER_INTERRACTION_PRESSED,
+    JUSTCLAY_POINTER_INTERRACTION_RELEASED,
+} JustClay_PointerInterractionType;
 
 typedef struct {
-    intptr_t userData;
-    Clay_OnHoverFunction onHoverFunction;
-} JustOnHoverUserData;
+    bool consumed;
+    Clay_ElementId element_id; // Clay_ElementId::id
+    JustClay_PointerInterractionType interraction_type;
+} JustClay_PointerEvent;
 
+__DECLARE__EVENT_SYSTEM__ACCESS_SINGLE_THREADED(JustClay_PointerEvent);
+
+typedef enum {
+    JUSTCLAY_POINTER_ONHOVER,
+    JUSTCLAY_POINTER_ONPRESS,
+    JUSTCLAY_POINTER_JUSTBEGINHOVER,
+    JUSTCLAY_POINTER_JUSTENDHOVER,
+    JUSTCLAY_POINTER_JUSTPRESSED,
+    JUSTCLAY_POINTER_JUSTRELEASED,
+    JUSTCLAY_POINTER_JUSTCLICKED,
+} JustClay_PointerStateEnum;
+
+introspect
 typedef struct {
     bool on_hover;
     bool on_press;
     bool just_begin_hover;
     bool just_end_hover;
+    // active on the frame `MouseLeftButton` is pressed on the elements
     bool just_pressed;
+    // active on the frame `MouseLeftButton` is released on the elements
+    bool just_released;
+    // active on the frame `MouseLeftButton` is released on the element
+    // if the same element was previously pressed
     bool just_clicked;
 } JustClay_PointerState;
 
 typedef struct {
+    bool is_modified;
+    Clay_ElementId element_id; // set if .is_modified is true
     JustClay_PointerState pointer;
 } JustClay_ElementState;
 
+typedef void (*Clay_OnHoverFunction)(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t userData);
+typedef void (*JustClay_OnPointerInterractFn)(Clay_ElementId element_id, JustClay_PointerState pointer_state, void* user_data);
+
 typedef struct {
-    JustOnHoverUserData just_on_hover_user_data;
+    void* user_data;
+    JustClay_OnPointerInterractFn on_interract_fn;
+} JustClay_OnPointerInterract_UserData;
+
+typedef struct {
+    JustClay_OnPointerInterract_UserData just_on_pointer_interract_user_data;
     JustClay_ElementState state;
 } JustClay_Element;
 
 typedef struct {
-    Clay_Id element_id; // Clay_ElementId::id
+    Clay_Id id; // Clay_ElementId::id
     JustClay_Element element;
 } JustClay_ElementKV;
-
-typedef struct {
-    bool exists;
-    Clay_Id element_id;
-    Clay_PointerDataInteractionState pointer_event;
-} JustClay_HoverEvent;
 
 typedef struct {
     usize count;
     usize capacity;
     JustClay_ElementKV* items;
-    JustClay_HoverEvent hover_event;
-    Clay_Id hovered_element_id;
-    Clay_Id pressed_element_id;
+    Clay_ElementId hovered_element_id;
+    Clay_ElementId pressed_element_id;
+    // Clay_ElementId hovered_element_clay_id;
+    // Clay_ElementId pressed_element_clay_id;
 } JustClay_ElementStore;
 
-void JustClay_OnHover(Clay_OnHoverFunction onHoverFunction, intptr_t userData);
-bool JustClay_Clicked();
-JustClay_ElementState JustClay_GetElementState(Clay_ElementId elementId);
+JustClay_Element* JustClay_FindElement(Clay_Id id);
+JustClay_ElementState JustClay_GetElementState(Clay_Id id);
+
+void JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_interract_fn, void* user_data);
+
+// -----
+bool JustClay_Check(JustClay_PointerStateEnum state);
+// --
+bool JustClay_OnHover();
+bool JustClay_OnPress();
+bool JustClay_JustBeginHover();
+bool JustClay_JustEndHover();
+bool JustClay_JustPressed();
+bool JustClay_JustReleased();
+bool JustClay_JustClicked();
+// -----
 
 // -----
 

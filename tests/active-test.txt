@@ -1,1 +1,1 @@
-test-entity-store
+clay-test
