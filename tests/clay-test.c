@@ -46,7 +46,7 @@ void button_on_click(
     if (pointer_state.just_clicked) {
         JUST_LOG_ERROR("Clicked: %s\n", element_id.stringId.chars);
     }
-    else {        
+    else {
         // just_pretty_print(JustClay_PointerState)(NULL, &pointer_state);
     }
 }
@@ -82,11 +82,15 @@ void RenderTabSelectButton(Clay_String text) {
 }
 
 bool JUST_Clay_Hovered(void);
+void Just_Clay_OnHover(void (*onHoverFunction)(Clay_ElementId elementId, Clay_PointerData pointerInfo, intptr_t userData), intptr_t userData);
 
 void JustRenderTabSelectButton(Clay_String text) {
     bool sw = text.chars[0] == 'S'; // Sound
-    CLAY((Clay_ElementDeclaration) {
-        .id = CLAY_SID(text),
+    // Clay_ElementId id = CLAY_SID(text);
+    // print_string(clay_string_to_string(text));
+    // printf(": %u\n", id.id);
+    JCLAY((Clay_ElementDeclaration) {
+        .id = JUSTCLAY_INTERRACT(CLAY_SID(text)),
         .layout = {
             // .padding = CLAY_PADDING_ALL(16),
             .sizing = {
@@ -98,13 +102,16 @@ void JustRenderTabSelectButton(Clay_String text) {
                 .y = CLAY_ALIGN_Y_CENTER,
             },
         },
-        .backgroundColor = (sw ? JUST_Clay_Hovered() : JustClay_OnHover()) ? (RAYLIB_COLOR_TO_CLAY_COLOR(GREEN)) : (RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE)),
+        .backgroundColor = JustClay_This_OnHover() ? (RAYLIB_COLOR_TO_CLAY_COLOR(GREEN)) : (RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE)),
         //.backgroundColor = Clay_Hovered() ? printf("Hovered: %u\n", test) ? RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
         .cornerRadius = CLAY_CORNER_RADIUS(5),
     }) {
+        // JUST_Clay_Hovered() +
+        Clay_Context* context = Clay_GetCurrentContext();
+        // Just_Clay_OnHover(button_on_hover, NULL);
         JustClay_InterractWithPointer(button_on_click, NULL);
         bool on_hover = JustClay_OnHover();
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG((Clay_TextElementConfig) {
             .fontId = FONT_ID_BODY_24,
             .fontSize = 24,
             .textColor = on_hover ? RAYLIB_COLOR_TO_CLAY_COLOR(BLACK) : RAYLIB_COLOR_TO_CLAY_COLOR(WHITE),

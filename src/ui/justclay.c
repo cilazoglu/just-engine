@@ -142,7 +142,7 @@ static void just_internal_on_hover(Clay_ElementId elementId, Clay_PointerData po
     }
 }
 
-void JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_interract_fn, void* user_data) {
+Clay_Id JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_interract_fn, void* user_data) {
     // -- Copied from Clay_OnHover --
     Clay_Context* context = Clay_GetCurrentContext();
     if (context->booleanWarnings.maxElementsExceeded) {
@@ -178,24 +178,49 @@ void JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_inte
     };
 
     Clay_OnHover(just_internal_on_hover, (intptr_t) NULL);
+    return this_elemkv->id;
 }
 
-bool JustClay_Check(JustClay_PointerStateEnum state) {
-    // -- Copied from Clay_Hovered --
+void Just_Clay_OnHover(void (*onHoverFunction)(Clay_ElementId elementId, Clay_PointerData pointerInfo, intptr_t userData), intptr_t userData) {
     Clay_Context* context = Clay_GetCurrentContext();
     if (context->booleanWarnings.maxElementsExceeded) {
-        return false;
+        return;
     }
-    Clay_LayoutElement* openLayoutElement = Clay__GetOpenLayoutElement(); // 3721769855, 4024129418
-    // If the element has no id attached at this point, we need to generate one
+    Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement(); // 1966619372, 1528724250, 340503119
     if (openLayoutElement->id == 0) {
         Clay__GenerateIdForAnonymousElement(openLayoutElement);
     }
-    // ------------------------------
+    Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(openLayoutElement->id);
+    hashMapItem->onHoverFunction = onHoverFunction;
+    hashMapItem->hoverFunctionUserData = userData;
+}
 
+static Clay_Id OPEN_LAYOUT_ELEMENT_REAL_ID = CLAY_NULLID;
+
+Clay_ElementId JUSTCLAY_INTERRACT(Clay_ElementId element_id) {
+    OPEN_LAYOUT_ELEMENT_REAL_ID = element_id.id;
+    return element_id;
+}
+
+void JustClay__OpenElement() {
+    OPEN_LAYOUT_ELEMENT_REAL_ID = CLAY_NULLID;
+    Clay__OpenElement();
+}
+
+void JustClay__CloseElement() {
+    OPEN_LAYOUT_ELEMENT_REAL_ID = CLAY_NULLID;
+    Clay__CloseElement();
+}
+
+void JustClay__ConfigureOpenElement(const Clay_ElementDeclaration config) {
+    OPEN_LAYOUT_ELEMENT_REAL_ID = CLAY_NULLID;
+    Clay__ConfigureOpenElement(config);
+}
+
+static bool __JustClay_Check(JustClay_PointerStateEnum state, Clay_Id check_id) {
     for (usize i = 0; i < JUSTCLAY_ELEMENT_STORE.count; i++) {
         JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
-        if (elemkv->id == openLayoutElement->id) {
+        if (elemkv->id == check_id) {
             switch (state) {
             case JUSTCLAY_POINTER_ONHOVER:          return elemkv->element.state.pointer.on_hover;
             case JUSTCLAY_POINTER_ONPRESS:          return elemkv->element.state.pointer.on_press;
@@ -211,12 +236,39 @@ bool JustClay_Check(JustClay_PointerStateEnum state) {
     return false;
 }
 
+bool JustClay_This_Check(JustClay_PointerStateEnum state) {
+    Clay_Context* context = Clay_GetCurrentContext();
+    if (context->booleanWarnings.maxElementsExceeded) {
+        return false;
+    }
+
+    Clay_Id check_id = OPEN_LAYOUT_ELEMENT_REAL_ID;
+    return __JustClay_Check(state, check_id);
+}
+
+bool JustClay_Check(JustClay_PointerStateEnum state) {
+    // -- Copied from Clay_Hovered --
+    Clay_Context* context = Clay_GetCurrentContext();
+    if (context->booleanWarnings.maxElementsExceeded) {
+        return false;
+    }
+    Clay_LayoutElement* openLayoutElement = Clay__GetOpenLayoutElement(); // 3721769855, 4024129418, 947972312
+    // If the element has no id attached at this point, we need to generate one
+    if (openLayoutElement->id == 0) {                                     // 1966619372, 1528724250, 340503119
+        Clay__GenerateIdForAnonymousElement(openLayoutElement);
+    }
+    // ------------------------------
+
+    Clay_Id check_id = openLayoutElement->id;
+    return __JustClay_Check(state, check_id);
+}
+
 bool JUST_Clay_Hovered(void) {
     Clay_Context* context = Clay_GetCurrentContext();
     if (context->booleanWarnings.maxElementsExceeded) {
         return false;
     }
-    Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement(); // 947972312
+    Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement(); // 3721769855, 4024129418, 947972312
     // If the element has no id attached at this point, we need to generate one
     if (openLayoutElement->id == 0) {
         Clay__GenerateIdForAnonymousElement(openLayoutElement);
@@ -227,6 +279,28 @@ bool JUST_Clay_Hovered(void) {
         }
     }
     return false; // 947972312
+}
+
+bool JustClay_This_OnHover() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_ONHOVER);
+}
+bool JustClay_This_OnPress() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_ONPRESS);
+}
+bool JustClay_This_JustBeginHover() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_JUSTBEGINHOVER);
+}
+bool JustClay_This_JustEndHover() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_JUSTENDHOVER);
+}
+bool JustClay_This_JustPressed() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_JUSTPRESSED);
+}
+bool JustClay_This_JustReleased() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_JUSTRELEASED);
+}
+bool JustClay_This_JustClicked() {
+    return JustClay_This_Check(JUSTCLAY_POINTER_JUSTCLICKED);
 }
 
 bool JustClay_OnHover() {

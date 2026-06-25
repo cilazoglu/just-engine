@@ -3771,6 +3771,13 @@ void SYSTEM_RENDER_draw_ui_elements(
 #define __HEADER_UI_JUSTCLAY
 #ifdef __HEADER_UI_JUSTCLAY
 
+#define JCLAY(...)                                                                                                                                                  \
+    for (                                                                                                                                                           \
+        CLAY__ELEMENT_DEFINITION_LATCH = (JustClay__OpenElement(), JustClay__ConfigureOpenElement(CLAY__CONFIG_WRAPPER(Clay_ElementDeclaration, __VA_ARGS__)), 0);  \
+        CLAY__ELEMENT_DEFINITION_LATCH < 1;                                                                                                                         \
+        CLAY__ELEMENT_DEFINITION_LATCH=1, JustClay__CloseElement()                                                                                                  \
+    )
+
 typedef uint32 Clay_Id;
 #define CLAY_NULLID 0
 
@@ -3877,8 +3884,29 @@ typedef struct {
 JustClay_Element* JustClay_FindElement(Clay_Id id);
 JustClay_ElementState JustClay_GetElementState(Clay_Id id);
 
-void JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_interract_fn, void* user_data);
+Clay_ElementId JUSTCLAY_INTERRACT(Clay_ElementId element_id);
+void JustClay__OpenElement();
+void JustClay__CloseElement();
+void JustClay__ConfigureOpenElement(const Clay_ElementDeclaration config);
 
+Clay_Id JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_interract_fn, void* user_data);
+
+// -----
+// inside element creation
+// -----
+bool JustClay_This_Check(JustClay_PointerStateEnum state);
+// --
+bool JustClay_This_OnHover();
+bool JustClay_This_OnPress();
+bool JustClay_This_JustBeginHover();
+bool JustClay_This_JustEndHover();
+bool JustClay_This_JustPressed();
+bool JustClay_This_JustReleased();
+bool JustClay_This_JustClicked();
+// -----
+
+// -----
+// after element creation, inside procedural block
 // -----
 bool JustClay_Check(JustClay_PointerStateEnum state);
 // --
