@@ -1,8 +1,9 @@
 #include "justengine.h"
 #include "introspect_gen__justengine.h"
 
-#define FONT_ID_BODY_24 0
-#define FONT_ID_BODY_16 1
+#define FONT_ID_BODY_32 0
+#define FONT_ID_BODY_24 1
+#define FONT_ID_BODY_16 2
 
 #define CLAY_GRAY               (Clay_Color) { 43, 41, 51, 255 }
 #define CLAY_CONTENT_BG_GRAY    (Clay_Color) { 90, 90, 90, 255 }
@@ -272,12 +273,12 @@ Clay_RenderCommandArray main_menu_ui() {
                         .y = CLAY_ALIGN_Y_CENTER,
                     },
                 },
-                .backgroundColor = RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
+                .backgroundColor = RAYLIB_COLOR_TO_CLAY_COLOR(BLUE),
             }) {
                 CLAY_TEXT(CLAY_STRING("[IMAGE]"), CLAY_TEXT_CONFIG((Clay_TextElementConfig) {
-                    .fontId = FONT_ID_BODY_24,
-                    .fontSize = 24,
-                    .textColor = RAYLIB_COLOR_TO_CLAY_COLOR(BLACK),
+                    .fontId = FONT_ID_BODY_32,
+                    .fontSize = 32,
+                    .textColor = RAYLIB_COLOR_TO_CLAY_COLOR(WHITE),
                     .textAlignment = CLAY_TEXT_ALIGN_CENTER,
                 }));
             };
@@ -397,14 +398,19 @@ int main() {
     };
 
     FontList RES_FONT_LIST = {0};
-    dynarray_reserve(RES_FONT_LIST, .fonts, 2);
+    dynarray_reserve(RES_FONT_LIST, .fonts, 3);
     {
-        Font font_body_24 = LoadFontEx("./test-assets/Roboto-Regular.ttf", 24, 0, 400);
+        Font font_body_32 = LoadFontEx("C:\\dev\\c\\just-engine\\test-assets\\Roboto-Regular.ttf", 32, 0, 400);
+        SetTextureFilter(font_body_32.texture, TEXTURE_FILTER_BILINEAR);
+        dynarray_push_back(RES_FONT_LIST, .fonts, font_body_32);
+    }
+    {
+        Font font_body_24 = LoadFontEx("C:\\dev\\c\\just-engine\\test-assets\\Roboto-Regular.ttf", 24, 0, 400);
         SetTextureFilter(font_body_24.texture, TEXTURE_FILTER_BILINEAR);
         dynarray_push_back(RES_FONT_LIST, .fonts, font_body_24);
     }
     {
-        Font font_body_16 = LoadFontEx("./test-assets/Roboto-Regular.ttf", 16, 0, 400);
+        Font font_body_16 = LoadFontEx("C:\\dev\\c\\just-engine\\test-assets\\Roboto-Regular.ttf", 16, 0, 400);
         SetTextureFilter(font_body_16.texture, TEXTURE_FILTER_BILINEAR);
         dynarray_push_back(RES_FONT_LIST, .fonts, font_body_16);
     }
