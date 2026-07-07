@@ -112,7 +112,7 @@ static void just_internal_consume_pointer_events() {
         JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
         if (elemkv->element.state.is_modified) {
             JustClay_OnPointerInterract_UserData fn = elemkv->element.just_on_pointer_interract_user_data;
-            (fn.on_interract_fn)(elemkv->element.state.element_id, elemkv->element.state.pointer, fn.user_data);
+            if (fn.on_interract_fn != NULL) (fn.on_interract_fn)(elemkv->element.state.element_id, elemkv->element.state.pointer, fn.user_data);
         }
     }
 }
@@ -146,7 +146,7 @@ Clay_Id JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_i
     // -- Copied from Clay_OnHover --
     Clay_Context* context = Clay_GetCurrentContext();
     if (context->booleanWarnings.maxElementsExceeded) {
-        return;
+        return CLAY_NULLID;
     }
     Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement(); // 1966619372, 1528724250, 340503119
     if (openLayoutElement->id == 0) {

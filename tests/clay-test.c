@@ -105,6 +105,9 @@ void JustRenderTabSelectButton(Clay_String text) {
         .backgroundColor = JustClay_This_OnHover() ? (RAYLIB_COLOR_TO_CLAY_COLOR(GREEN)) : (RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE)),
         //.backgroundColor = Clay_Hovered() ? printf("Hovered: %u\n", test) ? RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(GREEN) : RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
         .cornerRadius = CLAY_CORNER_RADIUS(5),
+        .image = (Clay_ImageElementConfig) {
+            .imageData = NULL,
+        },
     }) {
         // JUST_Clay_Hovered() +
         Clay_Context* context = Clay_GetCurrentContext();
@@ -118,6 +121,174 @@ void JustRenderTabSelectButton(Clay_String text) {
             .textAlignment = CLAY_TEXT_ALIGN_CENTER,
         }));
     };
+}
+
+typedef struct {
+    Clay_Id id;
+    char* name;
+} ClayButton;
+
+typedef enum {
+    MAIN_MENU__OPTION__PLAY = 0,
+    MAIN_MENU__OPTION__EDIT = 1,
+    MAIN_MENU__OPTION__EXIT = 2,
+    COUNT__MAIN_MENU__OPTION,
+} MainMenuOptions;
+
+static ClayButton MainMenuOptions_Buttons[] = {
+    [MAIN_MENU__OPTION__PLAY] = {
+        .id = CLAY_NULLID,
+        .name = "Play",
+    },
+    [MAIN_MENU__OPTION__EDIT] = {
+        .id = CLAY_NULLID,
+        .name = "Edit",
+    },
+    [MAIN_MENU__OPTION__EXIT] = {
+        .id = CLAY_NULLID,
+        .name = "Exit",
+    },
+};
+
+void handle_main_menu_buttons(bool* set_should_close) {
+    {
+        Clay_Id id = MainMenuOptions_Buttons[MAIN_MENU__OPTION__PLAY].id;
+        if (id != CLAY_NULLID) {
+            JustClay_ElementState play_button = JustClay_GetElementState(id);
+            if (play_button.pointer.just_clicked) {
+                // PLAY
+            }
+        }
+    }
+    {
+        Clay_Id id = MainMenuOptions_Buttons[MAIN_MENU__OPTION__EDIT].id;
+        if (id != CLAY_NULLID) {
+            JustClay_ElementState edit_button = JustClay_GetElementState(id);
+            if (edit_button.pointer.just_clicked) {
+                // EDIT
+            }
+        }
+    }
+    {
+        Clay_Id id = MainMenuOptions_Buttons[MAIN_MENU__OPTION__EXIT].id;
+        if (id != CLAY_NULLID) {
+            JustClay_ElementState exit_button = JustClay_GetElementState(id);
+            if (exit_button.pointer.just_clicked) {
+                // EXIT
+                *set_should_close = true;
+            }
+        }
+    }
+}
+
+void MainMenuButton(MainMenuOptions option_i) {
+    char* option_name = MainMenuOptions_Buttons[option_i].name;
+    Clay_String option_str = string_to_clay_string(string_from_cstr(option_name));
+
+    JCLAY((Clay_ElementDeclaration) {
+        .id = JUSTCLAY_INTERRACT(CLAY_SID_LOCAL(option_str)),
+        .layout = {
+            .sizing = {
+                .width = CLAY_SIZING_PERCENT(0.8),
+                .height = CLAY_SIZING_GROW(0),
+            },
+            // .sizing = {
+            //     .width = CLAY_SIZING_PERCENT(0.8),
+            //     .height = CLAY_SIZING_PERCENT(),
+            // },
+            .childAlignment = {
+                .x = CLAY_ALIGN_X_CENTER,
+                .y = CLAY_ALIGN_Y_CENTER,
+            },
+        },
+        .backgroundColor = JustClay_This_OnHover() ? (RAYLIB_COLOR_TO_CLAY_COLOR(GREEN)) : (RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE)),
+        // .cornerRadius = CLAY_CORNER_RADIUS(5),
+    }) {
+        MainMenuOptions_Buttons[option_i].id = JustClay_InterractWithPointer(button_on_click, NULL);
+        bool on_hover = JustClay_OnHover();
+        CLAY_TEXT(option_str, CLAY_TEXT_CONFIG((Clay_TextElementConfig) {
+            .fontId = FONT_ID_BODY_24,
+            .fontSize = 24,
+            .textColor = on_hover ? RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE) : RAYLIB_COLOR_TO_CLAY_COLOR(BLACK),
+            .textAlignment = CLAY_TEXT_ALIGN_CENTER,
+        }));
+    };
+}
+
+Clay_RenderCommandArray main_menu_ui() {
+    Clay_BeginLayout();
+
+    CLAY((Clay_ElementDeclaration) {
+        .id = CLAY_ID("OuterContainer"),
+        .backgroundColor = CLAY_GRAY,
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0),
+            },
+            // .padding = CLAY_PADDING_ALL(500),
+            .padding = {
+                .top = 200,
+                .bottom = 200,
+                .left = 800,
+                .right = 800,
+            },
+            .childGap = 0,
+            .childAlignment = {
+                .x = CLAY_ALIGN_X_CENTER,
+                .y = CLAY_ALIGN_Y_CENTER,
+            },
+        },
+        // .border = test_border_black,
+    }) {
+        CLAY((Clay_ElementDeclaration) {
+            .id = CLAY_ID("TabsWindow"),
+            .backgroundColor = CLAY_CONTENT_BG_GRAY,
+            .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .sizing = {
+                    .width = CLAY_SIZING_PERCENT(1.0),
+                    .height = CLAY_SIZING_PERCENT(1.0),
+                },
+                .padding = CLAY_PADDING_ALL(10),
+                .childGap = 10,
+                .childAlignment = {
+                    .x = CLAY_ALIGN_X_CENTER,
+                    .y = CLAY_ALIGN_Y_CENTER,
+                },
+            },
+            // .border = test_border_red,
+        }) {
+            JCLAY((Clay_ElementDeclaration) {
+                .id = CLAY_SID_LOCAL(CLAY_STRING("image")),
+                .layout = {
+                    .sizing = {
+                        .width = CLAY_SIZING_GROW(0),
+                        .height = CLAY_SIZING_PERCENT(0.5),
+                    },
+                    .childAlignment = {
+                        .x = CLAY_ALIGN_X_CENTER,
+                        .y = CLAY_ALIGN_Y_CENTER,
+                    },
+                },
+                .backgroundColor = RAYLIB_COLOR_TO_CLAY_COLOR(RAYWHITE),
+            }) {
+                CLAY_TEXT(CLAY_STRING("[IMAGE]"), CLAY_TEXT_CONFIG((Clay_TextElementConfig) {
+                    .fontId = FONT_ID_BODY_24,
+                    .fontSize = 24,
+                    .textColor = RAYLIB_COLOR_TO_CLAY_COLOR(BLACK),
+                    .textAlignment = CLAY_TEXT_ALIGN_CENTER,
+                }));
+            };
+
+            for (int32 main_menu_option_i = 0; main_menu_option_i < COUNT__MAIN_MENU__OPTION; main_menu_option_i++) {
+                MainMenuButton(main_menu_option_i);
+            }
+        }
+    }
+
+    return Clay_EndLayout();
 }
 
 Clay_RenderCommandArray settings_page_ui() {
@@ -211,7 +382,7 @@ int main() {
     // SET_LOG_LEVEL(LOG_LEVEL_WARN);
     // SET_LOG_LEVEL(LOG_LEVEL_TRACE);
 
-    InitWindow(1000, 1000, "Clay");
+    InitWindow(1980, 1200, "Clay");
     SetTargetFPS(60);
     
     TextureAssets RES_TEXTURE_ASSETS = new_texture_assets();
@@ -241,7 +412,8 @@ int main() {
     initialize_justclay(&RES_FONT_LIST);
     // Clay_SetDebugModeEnabled(true);
 
-    while (!WindowShouldClose()) {
+    bool should_close = WindowShouldClose();
+    while (!should_close) {
         frame_number++;
         float32 delta_time = GetFrameTime();
 
@@ -263,7 +435,10 @@ int main() {
 
         Clay_Color contentBackgroundColor = { 90, 90, 90, 255 };
 
-        Clay_RenderCommandArray clay_render_commands = settings_page_ui();
+        // Clay_RenderCommandArray clay_render_commands = settings_page_ui();
+        Clay_RenderCommandArray clay_render_commands = main_menu_ui();
+
+        handle_main_menu_buttons(&should_close);
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -275,6 +450,8 @@ int main() {
         );
 
         EndDrawing();
+
+        should_close |= WindowShouldClose();
     }
 
     return 0;
