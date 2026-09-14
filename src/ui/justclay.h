@@ -46,6 +46,11 @@ typedef struct {
 // -----
 
 typedef enum {
+    JUSTCLAY_POINTER_KIND_MOUSE,
+    JUSTCLAY_POINTER_KIND_KEYBOARD,
+} JustClay_PointerKind;
+
+typedef enum {
     JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
     JUSTCLAY_POINTER_INTERRACTION_PRESSED,
     JUSTCLAY_POINTER_INTERRACTION_RELEASED,
@@ -99,6 +104,7 @@ typedef struct {
 } JustClay_OnPointerInterract_UserData;
 
 typedef struct {
+    int64 order;
     JustClay_OnPointerInterract_UserData just_on_pointer_interract_user_data;
     JustClay_ElementState state;
 } JustClay_Element;

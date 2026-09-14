@@ -22,6 +22,28 @@ typedef     uint64                  usize;
 typedef     unsigned char           byte;
 // typedef     uint8                   bool;
 
+/*
+#define JUST_INT8_MIN       ((int8)    0x80)
+#define JUST_INT16_MIN      ((int16)   0x8000)
+#define JUST_INT32_MIN      ((int32)   0x80000000)
+#define JUST_INT64_MIN      ((int64)   0x8000000000000000)
+
+#define JUST_INT8_MAX       ((int8)    0x7f)
+#define JUST_INT16_MAX      ((int16)   0x7fff)
+#define JUST_INT32_MAX      ((int32)   0x7fffffff)
+#define JUST_INT64_MAX      ((int64)   0x7fffffffffffffff)
+*/
+
+#define JUST_INT8_MIN       (-127 - 1)
+#define JUST_INT16_MIN      (-32768 - 1)
+#define JUST_INT32_MIN      (-2147483647 - 1)
+#define JUST_INT64_MIN      (-9223372036854775807LL - 1LL)
+
+#define JUST_INT8_MAX       (127)
+#define JUST_INT16_MAX      (32767)
+#define JUST_INT32_MAX      (2147483647)
+#define JUST_INT64_MAX      (9223372036854775807LL)
+
 #define JUST_UINT8_MIN       ((uint8)    0x0)
 #define JUST_UINT16_MIN      ((uint16)   0x0)
 #define JUST_UINT32_MIN      ((uint32)   0x0)

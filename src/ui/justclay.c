@@ -23,6 +23,7 @@ String clay_string_to_string(Clay_String clay_string) {
 
 __IMPL_____EVENT_SYSTEM__ACCESS_SINGLE_THREADED(JustClay_PointerEvent);
 
+static JustClay_PointerKind JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_KEYBOARD; // JUSTCLAY_POINTER_KIND_MOUSE;
 static JustClay_ElementStore JUSTCLAY_ELEMENT_STORE = STRUCT_ZERO_INIT;
 static Events(JustClay_PointerEvent) JUSTCLAY_POINTER_EVENTS = STARTUP_INIT; // events_create(JustClay_PointerEvent)()
 
@@ -118,6 +119,10 @@ static void just_internal_consume_pointer_events() {
 }
 
 static void just_internal_on_hover(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t _userData_null) {
+    if (JUSTCLAY_CURRENT_POINTER_KIND != JUSTCLAY_POINTER_KIND_MOUSE) {
+        return;
+    }
+
     JustClay_ElementKV* this_elemkv = NULL;
 
     JustClay_PointerEvent hover_event = {
@@ -163,11 +168,13 @@ Clay_Id JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_i
             break;
         }
     }
+    // TODO: elements are never removed
     if (this_elemkv == NULL) {
         JustClay_ElementKV elemkv = {
             .id = openLayoutElement->id,
             .element = {0},
         };
+        elemkv.element.order = JUSTCLAY_ELEMENT_STORE.count;
         dynarray_push_back(JUSTCLAY_ELEMENT_STORE, .items, elemkv);
         this_elemkv = &JUSTCLAY_ELEMENT_STORE.items[JUSTCLAY_ELEMENT_STORE.count-1];
     }
@@ -179,6 +186,161 @@ Clay_Id JustClay_InterractWithPointer(JustClay_OnPointerInterractFn on_pointer_i
 
     Clay_OnHover(just_internal_on_hover, (intptr_t) NULL);
     return this_elemkv->id;
+}
+
+static void repeat_hover() {
+    Clay_Id hovered_id = JUSTCLAY_ELEMENT_STORE.hovered_element_id.id;
+    if (hovered_id != CLAY_NULLID) {
+        Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(hovered_id);
+        JustClay_PointerEvent hover_event = {
+            .consumed = false,
+            .element_id = hashMapItem->elementId,
+            .interraction_type = JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
+        };
+        events_send_single(JustClay_PointerEvent)(&JUSTCLAY_POINTER_EVENTS, hover_event);
+    }
+}
+
+static void hover_previous_element_by_order() {
+    Clay_Id hovered_id = JUSTCLAY_ELEMENT_STORE.hovered_element_id.id;
+    int32 find_order = JUST_INT32_MAX;
+    if (hovered_id != CLAY_NULLID) {
+        JustClay_Element* elem = JustClay_FindElement(hovered_id);
+        find_order = elem->order - 1;
+    }
+
+    JustClay_ElementKV* found_elemkv = NULL;
+    for (usize i = 0; i < JUSTCLAY_ELEMENT_STORE.count; i++) {
+        JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
+        if (elemkv->element.order < 0) {
+            continue;
+        }
+        if (find_order >= elemkv->element.order) {
+            if (elemkv->element.order == find_order) {
+                found_elemkv = elemkv;
+                break;
+            }
+            if (
+                found_elemkv == NULL
+                ||
+                found_elemkv != NULL && elemkv->element.order > found_elemkv->element.order
+            ) {
+                found_elemkv = elemkv;
+            }
+        }
+    }
+    if (found_elemkv == NULL) {
+        for (usize i = 0; i < JUSTCLAY_ELEMENT_STORE.count; i++) {
+            JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
+            if (elemkv->element.order < 0) {
+                continue;
+            }
+            if (
+                found_elemkv == NULL
+                ||
+                found_elemkv != NULL && elemkv->element.order > found_elemkv->element.order
+            ) {
+                found_elemkv = elemkv;
+            }
+        }
+    }
+
+    if (found_elemkv == NULL) {
+        PANIC("what to do");
+    }
+
+    // TODO: is this correct
+    Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(found_elemkv->id);
+    JustClay_PointerEvent hover_event = {
+        .consumed = false,
+        .element_id = hashMapItem->elementId,
+        .interraction_type = JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
+    };
+    events_send_single(JustClay_PointerEvent)(&JUSTCLAY_POINTER_EVENTS, hover_event);
+}
+
+static void hover_next_element_by_order() {
+    Clay_Id hovered_id = JUSTCLAY_ELEMENT_STORE.hovered_element_id.id;
+    int32 find_order = 0;
+    if (hovered_id != CLAY_NULLID) {
+        JustClay_Element* elem = JustClay_FindElement(hovered_id);
+        find_order = elem->order + 1;
+    }
+
+    JustClay_ElementKV* found_elemkv = NULL;
+    for (usize i = 0; i < JUSTCLAY_ELEMENT_STORE.count; i++) {
+        JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
+        if (elemkv->element.order < 0) {
+            continue;
+        }
+        if (find_order <= elemkv->element.order) {
+            if (elemkv->element.order == find_order) {
+                found_elemkv = elemkv;
+                break;
+            }
+            if (
+                found_elemkv == NULL
+                ||
+                found_elemkv != NULL && elemkv->element.order < found_elemkv->element.order
+            ) {
+                found_elemkv = elemkv;
+            }
+        }
+    }
+    if (found_elemkv == NULL) {
+        for (usize i = 0; i < JUSTCLAY_ELEMENT_STORE.count; i++) {
+            JustClay_ElementKV* elemkv = &JUSTCLAY_ELEMENT_STORE.items[i];
+            if (elemkv->element.order < 0) {
+                continue;
+            }
+            if (
+                found_elemkv == NULL
+                ||
+                found_elemkv != NULL && elemkv->element.order < found_elemkv->element.order
+            ) {
+                found_elemkv = elemkv;
+            }
+        }
+    }
+
+    if (found_elemkv == NULL) {
+        PANIC("what to do");
+    }
+
+    // TODO: is this correct
+    Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(found_elemkv->id);
+    JustClay_PointerEvent hover_event = {
+        .consumed = false,
+        .element_id = hashMapItem->elementId,
+        .interraction_type = JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
+    };
+    events_send_single(JustClay_PointerEvent)(&JUSTCLAY_POINTER_EVENTS, hover_event);
+}
+
+static void press_hovered_element() {
+    Clay_Id hovered_id = JUSTCLAY_ELEMENT_STORE.hovered_element_id.id;
+    if (hovered_id != CLAY_NULLID) {
+        Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(hovered_id);
+        JustClay_PointerEvent hover_event = {
+            .consumed = false,
+            .element_id = hashMapItem->elementId,
+            .interraction_type = JUSTCLAY_POINTER_INTERRACTION_PRESSED,
+        };
+        events_send_single(JustClay_PointerEvent)(&JUSTCLAY_POINTER_EVENTS, hover_event);
+    }
+}
+
+static void release_hovered_element() {
+    Clay_Id hovered_id = JUSTCLAY_ELEMENT_STORE.hovered_element_id.id;
+    if (hovered_id != CLAY_NULLID) {
+        Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(hovered_id);
+        JustClay_PointerEvent hover_event = {
+            .consumed = false,
+            .element_id = hashMapItem->elementId,
+            .interraction_type = JUSTCLAY_POINTER_INTERRACTION_RELEASED,
+        };
+        events_send_single(JustClay_PointerEvent)(&JUSTCLAY_POINTER_EVENTS, hover_event);
+    }
 }
 
 void Just_Clay_OnHover(void (*onHoverFunction)(Clay_ElementId elementId, Clay_PointerData pointerInfo, intptr_t userData), intptr_t userData) {
@@ -433,8 +595,37 @@ void SYSTEM_PRE_PREPARE_justclay_set_state(
     Vector2 mouse_position,
     bool mouse_down
 ) {
+    static usize frame = 0;
+    static Vector2 prev_mouse_position = {0};
+    if (!Vector2Equals(prev_mouse_position, mouse_position)) {
+        JUST_LOG_ERROR("[%llu] mouse\n", frame++);
+        JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_MOUSE;
+    }
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)) {
+        JUST_LOG_ERROR("[%llu] keyboard\n", frame++);
+        JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_KEYBOARD;
+    }
+    prev_mouse_position = mouse_position;
+
     Clay_Vector2 clay_mouse_position = RAYLIB_VECTOR2_TO_CLAY_VECTOR2(mouse_position);
     Clay_SetPointerState(clay_mouse_position, mouse_down);
+    if (JUSTCLAY_CURRENT_POINTER_KIND == JUSTCLAY_POINTER_KIND_KEYBOARD) {
+        if (IsKeyReleased(KEY_RIGHT)) {
+            hover_next_element_by_order();
+        }
+        else if (IsKeyReleased(KEY_LEFT)) {
+            hover_previous_element_by_order();
+        }
+        else {
+            repeat_hover();
+        }
+        if (IsKeyPressed(KEY_ENTER)) {
+            press_hovered_element();
+        }
+        if (IsKeyReleased(KEY_ENTER)) {
+            release_hovered_element();
+        }
+    }
     just_internal_consume_pointer_events();
     Clay_SetLayoutDimensions((Clay_Dimensions) { (float)GetScreenWidth(), (float)GetScreenHeight() });
 }
