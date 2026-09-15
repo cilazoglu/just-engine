@@ -417,6 +417,15 @@ int main() {
 
     initialize_justclay(&RES_FONT_LIST);
     // Clay_SetDebugModeEnabled(true);
+    
+    JustClay_InputKind input_kind = 0;
+
+    KeyState clickkey_state = KEY_STATE_NULL;
+    KeyState nextkey_state = KEY_STATE_NULL;
+    KeyState prevkey_state = KEY_STATE_NULL;
+
+    usize frame = 0;
+    Vector2 prev_mouse_position = {0};
 
     bool should_close = WindowShouldClose();
     while (!should_close) {
@@ -427,8 +436,52 @@ int main() {
         Vector2 mouse_position = GetMousePosition();
         Vector2 mouse_wheel_delta = GetMouseWheelMoveV();
 
+        JustClay_InputKind prev_input_kind = input_kind;
+        {
+            if (!Vector2Equals(prev_mouse_position, mouse_position)) {
+                // JUST_LOG_ERROR("[%llu] mouse\n", frame++);
+                input_kind = JUSTCLAY_INPUT_KIND_POINTER;
+            }
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_ENTER)) {
+                JUST_LOG_ERROR("[%llu] keyboard\n", frame++);
+                input_kind = JUSTCLAY_INPUT_KIND_KEY;
+            }
+            prev_mouse_position = mouse_position;
+        }
+        if (prev_input_kind != input_kind) {
+            JUST_LOG_ERROR("input_kind: %d -> %d\n", prev_input_kind, input_kind);
+        }
+
+        KeyState prev__clickkey_state = clickkey_state;
+        KeyState prev__nextkey_state = nextkey_state;
+        KeyState prev__prevkey_state = prevkey_state;
+        clickkey_state = next_key_state(clickkey_state, IsKeyDown(KEY_ENTER));
+        nextkey_state = next_key_state(nextkey_state, IsKeyDown(KEY_DOWN));
+        prevkey_state = next_key_state(prevkey_state, IsKeyDown(KEY_UP));
+
+        if (prev__clickkey_state != clickkey_state) {
+            JUST_LOG_ERROR("clickkey: %d -> %d\n", prev__clickkey_state, clickkey_state);
+        }
+        if (prev__nextkey_state != nextkey_state) {
+            JUST_LOG_ERROR("nextkey: %d -> %d\n", prev__nextkey_state, nextkey_state);
+        }
+        if (prev__prevkey_state != prevkey_state) {
+            JUST_LOG_ERROR("prevkey: %d -> %d\n", prev__prevkey_state, prevkey_state);
+        }
+
+        JustClayInput input = {
+            .input_kind = input_kind,
+            .pointer_position = mouse_position,
+            .clickkey_state =
+                input_kind == JUSTCLAY_INPUT_KIND_POINTER ? (mouse_down ? KEY_STATE_PRESSED : KEY_STATE_NULL)
+                : input_kind == JUSTCLAY_INPUT_KIND_KEY ? clickkey_state
+                : KEY_STATE_NULL,
+            .nextkey_state = nextkey_state,
+            .prevkey_state = prevkey_state,
+        };
+
         SYSTEM_PRE_PREPARE_reinit_justclay_if_necessary();
-        SYSTEM_PRE_PREPARE_justclay_set_state(mouse_position, mouse_down);
+        SYSTEM_PRE_PREPARE_justclay_set_state(input);
 
         SYSTEM_POST_PREPARE_justclay_update_scroll_containers(mouse_wheel_delta, delta_time);
 

@@ -1,5 +1,17 @@
 #include "input.h"
 
+KeyState next_key_state(KeyState key_state, bool state_isdown) {
+    switch (key_state) {
+    case KEY_STATE_NULL:
+    case KEY_STATE_RELEASED:
+        return branchless_if(state_isdown, KEY_STATE_PRESSED, KEY_STATE_NULL);
+    case KEY_STATE_PRESSED:
+    case KEY_STATE_REPEATED:
+        return branchless_if(state_isdown, KEY_STATE_REPEATED, KEY_STATE_RELEASED);
+        break;
+    }
+}
+
 // -- Keyboard
 
 bool key_just_pressed(KeyInputs* key_inputs, uint32 key) {
@@ -18,18 +30,9 @@ bool key_is_down(KeyInputs* key_inputs, uint32 key) {
     return key_inputs->keys[key] >= KEY_STATE_PRESSED; // KEY_STATE_PRESSED || KEY_STATE_REPEATED
 }
 
-void update_key_state(KeyInputs* key_inputs, uint32 key, bool state) {
+void update_key_state(KeyInputs* key_inputs, uint32 key, bool state_isdown) {
     KeyState* key_state = &key_inputs->keys[key];
-    switch (*key_state) {
-    case KEY_STATE_NULL:
-    case KEY_STATE_RELEASED:
-        *key_state = branchless_if(state, KEY_STATE_PRESSED, KEY_STATE_NULL);
-        break;
-    case KEY_STATE_PRESSED:
-    case KEY_STATE_REPEATED:
-        *key_state = branchless_if(state, KEY_STATE_REPEATED, KEY_STATE_RELEASED);
-        break;
-    }
+    *key_state = next_key_state(*key_state, state_isdown);
 }
 
 void set_key_repeated(KeyInputs* key_inputs, uint32 key) {
@@ -71,18 +74,9 @@ float32 gamepad_axis_delta(GamepadInputs* gamepad_inputs, uint32 axis) {
     return gamepad_inputs->axis_values[axis] - gamepad_inputs->prev_axis_values[axis];
 }
 
-void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state) {
+void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state_isdown) {
     KeyState* button_state = &gamepad_inputs->buttons[button];
-    switch (*button_state) {
-    case KEY_STATE_NULL:
-    case KEY_STATE_RELEASED:
-        *button_state = branchless_if(state, KEY_STATE_PRESSED, KEY_STATE_NULL);
-        break;
-    case KEY_STATE_PRESSED:
-    case KEY_STATE_REPEATED:
-        *button_state = branchless_if(state, KEY_STATE_REPEATED, KEY_STATE_RELEASED);
-        break;
-    }
+    *button_state = next_key_state(*button_state, state_isdown);
 }
 
 void update_gamepad_axis_value(GamepadInputs* gamepad_inputs, uint32 axis, float32 value) {

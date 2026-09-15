@@ -3059,6 +3059,11 @@ typedef enum {
     KEY_STATE_REPEATED = 3,
 } KeyState;
 
+#define KeyState_IsUp(ks) ((ks) <= KEY_STATE_RELEASED)
+#define KeyState_IsDown(ks) ((ks) >= KEY_STATE_PRESSED)
+
+KeyState next_key_state(KeyState key_state, bool state_isdown);
+
 typedef struct {
     KeyState keys[MAX_KEYBOARD_KEYS];
 } KeyInputs;
@@ -3069,7 +3074,7 @@ bool key_is_released(KeyInputs* key_inputs, uint32 key);
 bool key_is_up(KeyInputs* key_inputs, uint32 key);
 bool key_is_down(KeyInputs* key_inputs, uint32 key);
 
-void update_key_state(KeyInputs* key_inputs, uint32 key, bool state);
+void update_key_state(KeyInputs* key_inputs, uint32 key, bool state_isdown);
 void set_key_repeated(KeyInputs* key_inputs, uint32 key);
 
 typedef struct {
@@ -3086,7 +3091,7 @@ bool gamepad_button_is_down(GamepadInputs* gamepad_inputs, uint32 button);
 float32 gamepad_axis_value(GamepadInputs* gamepad_inputs, uint32 axis);
 float32 gamepad_axis_delta(GamepadInputs* gamepad_inputs, uint32 axis);
 
-void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state);
+void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state_isdown);
 void update_gamepad_axis_value(GamepadInputs* gamepad_inputs, uint32 axis, float32 value);
 
 typedef struct {
@@ -3809,6 +3814,11 @@ typedef struct {
 // -----
 
 typedef enum {
+    JUSTCLAY_INPUT_KIND_POINTER,
+    JUSTCLAY_INPUT_KIND_KEY,
+} JustClay_InputKind;
+
+typedef enum {
     JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
     JUSTCLAY_POINTER_INTERRACTION_PRESSED,
     JUSTCLAY_POINTER_INTERRACTION_RELEASED,
@@ -3862,6 +3872,7 @@ typedef struct {
 } JustClay_OnPointerInterract_UserData;
 
 typedef struct {
+    int64 order;
     JustClay_OnPointerInterract_UserData just_on_pointer_interract_user_data;
     JustClay_ElementState state;
 } JustClay_Element;
@@ -3931,11 +3942,18 @@ void initialize_justclay(FontList* font_list);
 
 // -- SYSTEM --
 
+typedef struct {
+    JustClay_InputKind input_kind;
+    Vector2 pointer_position;
+    KeyState clickkey_state;
+    KeyState nextkey_state;
+    KeyState prevkey_state;
+} JustClayInput;
+
 void SYSTEM_PRE_PREPARE_reinit_justclay_if_necessary();
 
 void SYSTEM_PRE_PREPARE_justclay_set_state(
-    Vector2 mouse_position,
-    bool mouse_down
+    JustClayInput input
 );
 
 void SYSTEM_POST_PREPARE_justclay_update_scroll_containers(

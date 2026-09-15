@@ -23,7 +23,7 @@ String clay_string_to_string(Clay_String clay_string) {
 
 __IMPL_____EVENT_SYSTEM__ACCESS_SINGLE_THREADED(JustClay_PointerEvent);
 
-static JustClay_PointerKind JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_KEYBOARD; // JUSTCLAY_POINTER_KIND_MOUSE;
+static JustClay_InputKind JUSTCLAY_CURRENT_INPUT_KIND = JUSTCLAY_INPUT_KIND_KEY; // JUSTCLAY_INPUT_KIND_POINTER;
 static JustClay_ElementStore JUSTCLAY_ELEMENT_STORE = STRUCT_ZERO_INIT;
 static Events(JustClay_PointerEvent) JUSTCLAY_POINTER_EVENTS = STARTUP_INIT; // events_create(JustClay_PointerEvent)()
 
@@ -119,7 +119,7 @@ static void just_internal_consume_pointer_events() {
 }
 
 static void just_internal_on_hover(Clay_ElementId elementId, Clay_PointerData pointerData, intptr_t _userData_null) {
-    if (JUSTCLAY_CURRENT_POINTER_KIND != JUSTCLAY_POINTER_KIND_MOUSE) {
+    if (JUSTCLAY_CURRENT_INPUT_KIND != JUSTCLAY_INPUT_KIND_POINTER) {
         return;
     }
 
@@ -592,40 +592,51 @@ void SYSTEM_PRE_PREPARE_reinit_justclay_if_necessary() {
 }
 
 void SYSTEM_PRE_PREPARE_justclay_set_state(
-    Vector2 mouse_position,
-    bool mouse_down
+    JustClayInput input
 ) {
-    static usize frame = 0;
-    static Vector2 prev_mouse_position = {0};
-    if (!Vector2Equals(prev_mouse_position, mouse_position)) {
-        JUST_LOG_ERROR("[%llu] mouse\n", frame++);
-        JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_MOUSE;
-    }
-    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)) {
-        JUST_LOG_ERROR("[%llu] keyboard\n", frame++);
-        JUSTCLAY_CURRENT_POINTER_KIND = JUSTCLAY_POINTER_KIND_KEYBOARD;
-    }
-    prev_mouse_position = mouse_position;
+    // -----
+    // static usize frame = 0;
+    // static Vector2 prev_mouse_position = {0};
+    // if (!Vector2Equals(prev_mouse_position, input.pointer_position)) {
+    //     JUST_LOG_ERROR("[%llu] mouse\n", frame++);
+    //     JUSTCLAY_CURRENT_INPUT_KIND = JUSTCLAY_INPUT_KIND_POINTER;
+    // }
+    // if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)) {
+    //     JUST_LOG_ERROR("[%llu] keyboard\n", frame++);
+    //     JUSTCLAY_CURRENT_INPUT_KIND = JUSTCLAY_INPUT_KIND_KEY;
+    // }
+    // prev_mouse_position = input.pointer_position;
+    // -----
 
-    Clay_Vector2 clay_mouse_position = RAYLIB_VECTOR2_TO_CLAY_VECTOR2(mouse_position);
-    Clay_SetPointerState(clay_mouse_position, mouse_down);
-    if (JUSTCLAY_CURRENT_POINTER_KIND == JUSTCLAY_POINTER_KIND_KEYBOARD) {
-        if (IsKeyReleased(KEY_RIGHT)) {
+    JUSTCLAY_CURRENT_INPUT_KIND = input.input_kind;
+
+    Clay_SetPointerState(
+        RAYLIB_VECTOR2_TO_CLAY_VECTOR2(input.pointer_position),
+        KeyState_IsDown(input.clickkey_state)
+    );
+    if (JUSTCLAY_CURRENT_INPUT_KIND == JUSTCLAY_INPUT_KIND_KEY) {
+        if (input.nextkey_state == KEY_STATE_RELEASED || IsKeyReleased(KEY_DOWN)) {
+            JUST_LOG_ERROR("hover next\n");
             hover_next_element_by_order();
         }
-        else if (IsKeyReleased(KEY_LEFT)) {
+        else if (input.prevkey_state == KEY_STATE_RELEASED || IsKeyReleased(KEY_UP)) {
+            JUST_LOG_ERROR("hover prev\n");
             hover_previous_element_by_order();
         }
         else {
             repeat_hover();
         }
-        if (IsKeyPressed(KEY_ENTER)) {
+
+        if (input.clickkey_state == KEY_STATE_PRESSED || IsKeyPressed(KEY_ENTER)) {
+            JUST_LOG_ERROR("press\n");
             press_hovered_element();
         }
-        if (IsKeyReleased(KEY_ENTER)) {
+        else if (input.clickkey_state == KEY_STATE_RELEASED || IsKeyReleased(KEY_ENTER)) {
+            JUST_LOG_ERROR("release\n");
             release_hovered_element();
         }
     }
+
     just_internal_consume_pointer_events();
     Clay_SetLayoutDimensions((Clay_Dimensions) { (float)GetScreenWidth(), (float)GetScreenHeight() });
 }

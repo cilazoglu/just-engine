@@ -7,6 +7,7 @@
 #include "introspect/introspect.h"
 #include "assets/asset.h"
 #include "events/declmacro.h"
+#include "input/input.h"
 
 #define JCLAY(...)                                                                                                                                                  \
     for (                                                                                                                                                           \
@@ -46,9 +47,9 @@ typedef struct {
 // -----
 
 typedef enum {
-    JUSTCLAY_POINTER_KIND_MOUSE,
-    JUSTCLAY_POINTER_KIND_KEYBOARD,
-} JustClay_PointerKind;
+    JUSTCLAY_INPUT_KIND_POINTER,
+    JUSTCLAY_INPUT_KIND_KEY,
+} JustClay_InputKind;
 
 typedef enum {
     JUSTCLAY_POINTER_INTERRACTION_ONHOVER,
@@ -174,11 +175,18 @@ void initialize_justclay(FontList* font_list);
 
 // -- SYSTEM --
 
+typedef struct {
+    JustClay_InputKind input_kind;
+    Vector2 pointer_position;
+    KeyState clickkey_state;
+    KeyState nextkey_state;
+    KeyState prevkey_state;
+} JustClayInput;
+
 void SYSTEM_PRE_PREPARE_reinit_justclay_if_necessary();
 
 void SYSTEM_PRE_PREPARE_justclay_set_state(
-    Vector2 mouse_position,
-    bool mouse_down
+    JustClayInput input
 );
 
 void SYSTEM_POST_PREPARE_justclay_update_scroll_containers(

@@ -17,6 +17,11 @@ typedef enum {
     KEY_STATE_REPEATED = 3,
 } KeyState;
 
+#define KeyState_IsUp(ks) ((ks) <= KEY_STATE_RELEASED)
+#define KeyState_IsDown(ks) ((ks) >= KEY_STATE_PRESSED)
+
+KeyState next_key_state(KeyState key_state, bool state_isdown);
+
 typedef struct {
     KeyState keys[MAX_KEYBOARD_KEYS];
 } KeyInputs;
@@ -27,7 +32,7 @@ bool key_is_released(KeyInputs* key_inputs, uint32 key);
 bool key_is_up(KeyInputs* key_inputs, uint32 key);
 bool key_is_down(KeyInputs* key_inputs, uint32 key);
 
-void update_key_state(KeyInputs* key_inputs, uint32 key, bool state);
+void update_key_state(KeyInputs* key_inputs, uint32 key, bool state_isdown);
 void set_key_repeated(KeyInputs* key_inputs, uint32 key);
 
 typedef struct {
@@ -44,7 +49,7 @@ bool gamepad_button_is_down(GamepadInputs* gamepad_inputs, uint32 button);
 float32 gamepad_axis_value(GamepadInputs* gamepad_inputs, uint32 axis);
 float32 gamepad_axis_delta(GamepadInputs* gamepad_inputs, uint32 axis);
 
-void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state);
+void update_gamepad_button_state(GamepadInputs* gamepad_inputs, uint32 button, bool state_isdown);
 void update_gamepad_axis_value(GamepadInputs* gamepad_inputs, uint32 axis, float32 value);
 
 typedef struct {
